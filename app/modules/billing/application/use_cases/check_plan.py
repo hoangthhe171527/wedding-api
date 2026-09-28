@@ -10,7 +10,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from uuid import UUID
 
-from app.modules.billing.application.ports import TemplateCatalog
+from app.modules.billing.application.ports import PlanWaiver, TemplateCatalog
 from app.modules.billing.application.support import current_plan
 from app.modules.billing.domain.entities import Usage, Violation
 from app.modules.billing.domain.enums import Plan
@@ -26,12 +26,18 @@ class PlanCheck:
 
 
 class CheckPlan:
-    def __init__(self, orders: OrderRepository, templates: TemplateCatalog) -> None:
+    def __init__(
+        self,
+        orders: OrderRepository,
+        templates: TemplateCatalog,
+        waiver: PlanWaiver | None = None,
+    ) -> None:
         self._orders = orders
         self._templates = templates
+        self._waiver = waiver
 
     async def execute(self, tenant_id: UUID, usage: Usage) -> PlanCheck:
-        plan = await current_plan(self._orders, tenant_id)
+        plan = await current_plan(self._orders, tenant_id, self._waiver)
         found = violations(
             plan, usage, await self._templates.tiers(), await self._templates.names()
         )

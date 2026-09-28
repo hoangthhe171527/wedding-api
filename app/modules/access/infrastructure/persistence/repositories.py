@@ -75,6 +75,10 @@ class BeanieRoleAssignmentRepository:
         ).to_list()
         return [_assignment(doc) for doc in docs]
 
+    async def list_for_tenant(self, tenant_id: UUID) -> list[RoleAssignment]:
+        docs = await RoleAssignmentDocument.scoped(tenant_id).to_list()
+        return [_assignment(doc) for doc in docs]
+
     async def list_for_users(self, user_ids: Sequence[UUID]) -> list[RoleAssignment]:
         if not user_ids:
             return []

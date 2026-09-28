@@ -21,6 +21,7 @@ from app.modules.billing.application.use_cases import (
     StudioPlans,
 )
 from app.modules.billing.infrastructure.external.momo import HttpMomoGateway
+from app.modules.billing.infrastructure.external.plan_waiver import AdminPlanWaiver
 from app.modules.billing.infrastructure.persistence.repositories import (
     BeanieOrderRepository,
     BeaniePaymentEventRepository,
@@ -29,7 +30,7 @@ from app.modules.identity import build_studio_directory
 
 
 def provide_get_billing() -> GetBilling:
-    return GetBilling(BeanieOrderRepository(), HttpMomoGateway())
+    return GetBilling(BeanieOrderRepository(), HttpMomoGateway(), AdminPlanWaiver())
 
 
 def provide_create_order() -> CreateOrder:

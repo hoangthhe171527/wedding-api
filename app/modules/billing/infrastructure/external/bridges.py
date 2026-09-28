@@ -19,6 +19,7 @@ from app.modules.billing.application.use_cases import CheckPlan
 from app.modules.billing.domain.entities import Usage
 from app.modules.billing.domain.enums import PLAN_RANK, PLAN_SPECS, PaymentMethod, Plan
 from app.modules.billing.domain.services import generate_order_code
+from app.modules.billing.infrastructure.external.plan_waiver import AdminPlanWaiver
 from app.modules.billing.infrastructure.persistence.repositories import BeanieOrderRepository
 from app.modules.template import build_template_catalog_reader
 
@@ -27,7 +28,9 @@ class PlanGate:
     """Xét gói cho một đám cưới."""
 
     def __init__(self) -> None:
-        self._check = CheckPlan(BeanieOrderRepository(), build_template_catalog_reader())
+        self._check = CheckPlan(
+            BeanieOrderRepository(), build_template_catalog_reader(), AdminPlanWaiver()
+        )
 
     async def check(self, tenant_id: UUID, usage: dict[str, Any]) -> dict[str, Any]:
         """`usage`: `templates`, `open_style`, `guest_count`, `music`, `gift`, `theme`."""
@@ -65,9 +68,10 @@ class EntitlementReader:
 
     def __init__(self) -> None:
         self._orders = BeanieOrderRepository()
+        self._waiver = AdminPlanWaiver()
 
     async def plan_for(self, tenant_id: UUID) -> dict[str, Any]:
-        plan = await current_plan(self._orders, tenant_id)
+        plan = await current_plan(self._orders, tenant_id, self._waiver)
         spec = PLAN_SPECS[plan]
         return {
             "plan": plan.value,

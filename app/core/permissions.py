@@ -38,6 +38,7 @@ class Permission(StrEnum):
     TEMPLATE_MANAGE = "template.manage"
     USER_MANAGE = "user.manage"
     STUDIO_OVERSEE = "studio.oversee"
+    PLAN_UNLIMITED = "plan.unlimited"
 
 
 @dataclass(frozen=True, slots=True)
@@ -86,6 +87,15 @@ PERMISSION_CATALOG: Final[tuple[PermissionDefinition, ...]] = (
         label="Giám sát xưởng thiệp",
         group=PermissionGroup.SYSTEM,
         description="Xem danh sách xưởng thiệp của mọi khách cùng số liệu tổng quan.",
+    ),
+    PermissionDefinition(
+        slug=Permission.PLAN_UNLIMITED,
+        label="Dùng mọi tính năng không tính phí",
+        group=PermissionGroup.SYSTEM,
+        description=(
+            "Xưởng của tài khoản này được dùng mọi mẫu, mọi tính năng và xuất bản như gói "
+            "cao nhất, không cần mua gói."
+        ),
     ),
 )
 

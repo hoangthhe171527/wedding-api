@@ -8,6 +8,7 @@ from uuid import UUID
 from app.core.base_model import utc_now
 from app.core.config import get_settings
 from app.core.errors import NotFoundError
+from app.modules.billing.application.ports import PlanWaiver
 from app.modules.billing.domain.enums import Plan
 from app.modules.billing.domain.repositories import OrderRepository
 from app.modules.billing.domain.services import highest_plan
@@ -68,8 +69,15 @@ def order_not_found() -> NotFoundError:
     return NotFoundError("Không tìm thấy đơn hàng.", code="order_not_found")
 
 
-async def current_plan(orders: OrderRepository, tenant_id: UUID) -> Plan:
-    """Gói hiện tại = gói cao nhất trong các đơn ĐÃ trả của xưởng."""
+async def current_plan(
+    orders: OrderRepository, tenant_id: UUID, waiver: PlanWaiver | None = None
+) -> Plan:
+    """Gói hiện tại = gói cao nhất trong các đơn ĐÃ trả của xưởng.
+
+    Xưởng được miễn (tài khoản quản trị) luôn ở gói cao nhất, không cần đơn nào.
+    """
+    if waiver is not None and await waiver.waived(tenant_id):
+        return Plan.PREMIUM
     return highest_plan(await orders.paid_plans(tenant_id))
 
 

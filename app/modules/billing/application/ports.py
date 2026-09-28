@@ -3,8 +3,15 @@
 from __future__ import annotations
 
 from typing import Protocol
+from uuid import UUID
 
 from app.modules.billing.domain.entities import Order
+
+
+class PlanWaiver(Protocol):
+    """Xưởng được dùng mọi tính năng như gói cao nhất mà không mua (tài khoản quản trị)."""
+
+    async def waived(self, tenant_id: UUID) -> bool: ...
 
 
 class TemplateCatalog(Protocol):

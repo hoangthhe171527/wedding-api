@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from app.core.context import ActorContext
-from app.modules.billing.application.ports import MomoGateway
+from app.modules.billing.application.ports import MomoGateway, PlanWaiver
 from app.modules.billing.application.support import (
     BankAccountInfo,
     SupportContact,
@@ -36,13 +36,16 @@ class BillingSummary:
 
 
 class GetBilling:
-    def __init__(self, orders: OrderRepository, momo: MomoGateway) -> None:
+    def __init__(
+        self, orders: OrderRepository, momo: MomoGateway, waiver: PlanWaiver | None = None
+    ) -> None:
         self._orders = orders
         self._momo = momo
+        self._waiver = waiver
 
     async def execute(self, actor: ActorContext) -> BillingSummary:
         await expire_stale(self._orders, actor.tenant_id)
-        plan = await current_plan(self._orders, actor.tenant_id)
+        plan = await current_plan(self._orders, actor.tenant_id, self._waiver)
         return BillingSummary(
             plan=plan,
             upgrade_prices={item: upgrade_price(plan, item) for item in PLAN_SPECS},
