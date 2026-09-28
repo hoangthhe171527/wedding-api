@@ -64,6 +64,7 @@ class BankAccountModel(BaseModel):
     bank: str = ""
     number: str = ""
     holder: str = ""
+    qr: str = ""
 
 
 class GiftModel(BaseModel):

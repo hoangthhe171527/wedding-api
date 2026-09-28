@@ -70,6 +70,8 @@ WORDING_KEYS: Final[frozenset[str]] = frozenset(
 CHECKLIST_IDS: Final[tuple[str, ...]] = tuple(f"c{index}" for index in range(1, 12))
 
 MAX_EVENTS: Final[int] = 12
+#: Ảnh QR mừng cưới lưu dạng data URL (PNG/JPEG/WebP đã thu nhỏ ở trình duyệt): ~150 KB.
+MAX_QR_CHARS: Final[int] = 200_000
 
 #: Font được chọn ở bộ chỉnh giao diện — đúng các font web thiệp đã nạp sẵn
 #: (Google Fonts, có đủ dấu tiếng Việt). Font lạ sẽ rơi về font dự phòng.

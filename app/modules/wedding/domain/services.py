@@ -28,6 +28,8 @@ _TIME_RE: Final = re.compile(r"^([01]\d|2[0-3]):[0-5]\d$")
 _SLUG_RE: Final = re.compile(r"^[a-z0-9](?:[a-z0-9-]{1,58}[a-z0-9])$")
 _URL_RE: Final = re.compile(r"^https?://\S+$", re.IGNORECASE)
 _HEX_RE: Final = re.compile(r"^#[0-9a-fA-F]{6}$")
+#: Chỉ ảnh raster dạng base64 — không nhận SVG hay URL ngoài (ảnh hiện thẳng trên web thiệp).
+_QR_RE: Final = re.compile(r"^data:image/(png|jpeg|webp);base64,[A-Za-z0-9+/]+=*$")
 
 #: Slug không được trùng đường dẫn hệ thống của web.
 RESERVED_SLUGS: Final[frozenset[str]] = frozenset(
@@ -83,6 +85,10 @@ def validate_content(content: WeddingContent, *, known_templates: frozenset[str]
     for index, color in enumerate(content.dress_code.colors):
         if not _HEX_RE.match(color):
             add(f"dress_code.colors.{index}", "Màu phải có dạng #RRGGBB.")
+
+    for side, account in (("groom", content.gift.groom), ("bride", content.gift.bride)):
+        if account.qr and not _QR_RE.match(account.qr):
+            add(f"gift.{side}.qr", "Ảnh QR phải là PNG, JPEG hoặc WebP.")
 
     if content.rsvp.url and not _URL_RE.match(content.rsvp.url):
         add("rsvp.url", "Link xác nhận phải bắt đầu bằng http:// hoặc https://.")

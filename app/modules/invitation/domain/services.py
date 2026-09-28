@@ -62,7 +62,7 @@ def public_wedding(snapshot: dict[str, Any]) -> dict[str, Any]:
     data = {key: value for key, value in snapshot.items() if key in PUBLIC_WEDDING_KEYS}
     gift = dict(data.get("gift") or {})
     if not gift.get("show"):
-        empty = {"bank": "", "number": "", "holder": ""}
+        empty = {"bank": "", "number": "", "holder": "", "qr": ""}
         data["gift"] = {"show": False, "groom": dict(empty), "bride": dict(empty)}
     return data
 

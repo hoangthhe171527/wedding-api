@@ -28,7 +28,7 @@ from app.modules.wedding.domain.entities import (
     Wedding,
     WeddingContent,
 )
-from app.modules.wedding.domain.enums import EventKind, OpenStyle, Side
+from app.modules.wedding.domain.enums import MAX_QR_CHARS, EventKind, OpenStyle, Side
 
 Short = Annotated[str, Field(max_length=120)]
 Line = Annotated[str, Field(max_length=300)]
@@ -126,13 +126,14 @@ class BankAccountIO(BaseModel):
     bank: Short = ""
     number: Annotated[str, Field(max_length=40)] = ""
     holder: Short = ""
+    qr: Annotated[str, Field(max_length=MAX_QR_CHARS)] = ""
 
     def to_domain(self) -> BankAccount:
-        return BankAccount(bank=self.bank, number=self.number, holder=self.holder)
+        return BankAccount(bank=self.bank, number=self.number, holder=self.holder, qr=self.qr)
 
     @classmethod
     def of(cls, item: BankAccount) -> BankAccountIO:
-        return cls(bank=item.bank, number=item.number, holder=item.holder)
+        return cls(bank=item.bank, number=item.number, holder=item.holder, qr=item.qr)
 
 
 class GiftIO(BaseModel):

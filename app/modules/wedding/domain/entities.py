@@ -80,6 +80,8 @@ class BankAccount:
     bank: str = ""
     number: str = ""
     holder: str = ""
+    #: Ảnh QR do cặp đôi tải lên (data URL); trống thì web thiệp tự tạo VietQR.
+    qr: str = ""
 
 
 @dataclass(frozen=True, slots=True)
