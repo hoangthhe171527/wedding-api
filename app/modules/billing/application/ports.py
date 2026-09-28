@@ -1,0 +1,34 @@
+"""Cổng của `billing` sang module khác và ra ngoài hệ thống."""
+
+from __future__ import annotations
+
+from typing import Protocol
+
+from app.modules.billing.domain.entities import Order
+
+
+class TemplateCatalog(Protocol):
+    """Hạng và tên mẫu thiệp (module `template`)."""
+
+    async def tiers(self) -> dict[str, str]:
+        """Khoá mẫu -> slug hạng (`free` / `standard` / `premium`)."""
+        ...
+
+    async def names(self) -> dict[str, str]: ...
+
+
+class MomoGateway(Protocol):
+    """Tạo phiên thanh toán ví MoMo cho một đơn."""
+
+    @property
+    def enabled(self) -> bool: ...
+
+    async def create_payment(self, order: Order, *, redirect_url: str, ipn_url: str) -> str:
+        """Trả `payUrl` để chuyển khách sang MoMo.
+
+        Raises: ServiceUnavailableError khi cổng lỗi hoặc từ chối.
+        """
+        ...
+
+
+__all__ = ["MomoGateway", "TemplateCatalog"]

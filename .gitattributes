@@ -1,0 +1,8 @@
+# Checkout trên Windows với core.autocrlf=true biến mọi file thành CRLF. Script
+# shell chạy trong container Linux thì shebang thành "bash\r" và container chết
+# ngay với exit 127. Các file dưới đây phải giữ LF ở mọi hệ điều hành.
+*.sh text eol=lf
+Dockerfile text eol=lf
+Makefile text eol=lf
+docker/** text eol=lf
+*.py text eol=lf

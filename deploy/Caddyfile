@@ -1,0 +1,42 @@
+# Reverse proxy production: HTTPS tự động (Let's Encrypt), header bảo mật.
+# Web và API CHUNG domain: /api/* -> API, còn lại -> web (SSR). Ảnh ở MEDIA_DOMAIN.
+
+(security) {
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		Permissions-Policy "camera=(), microphone=(), geolocation=()"
+		-Server
+	}
+}
+
+{$DOMAIN} {
+	import security
+	encode zstd gzip
+
+	handle /api/* {
+		# Ảnh tải lên tối đa ~10 MB; chặn thân lớn hơn trước khi tới API.
+		request_body {
+			max_size 12MB
+		}
+		reverse_proxy api:8000
+	}
+
+	handle {
+		header {
+			# CSP của trang HTML do web tự dựng (nonce theo từng request, không
+			# unsafe-inline cho script — xem wedding-web/src/lib/csp.ts). Dấu "?" = chỉ
+			# đặt khi phản hồi CHƯA có: đây là lưới an toàn cho tệp tĩnh / trang lỗi.
+			?Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https://{$MEDIA_DOMAIN}; connect-src 'self' https://{$MEDIA_DOMAIN}; frame-ancestors 'none'; object-src 'none'; base-uri 'self'; form-action 'self'"
+		}
+		reverse_proxy web:3000
+	}
+}
+
+# Kho ảnh (S3 / SeaweedFS) — URL ảnh đã ký. Giữ nguyên Host: chữ ký S3 gắn với host.
+{$MEDIA_DOMAIN} {
+	import security
+	header Access-Control-Allow-Origin "https://{$DOMAIN}"
+	reverse_proxy s3:8333
+}

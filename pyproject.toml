@@ -1,0 +1,144 @@
+[project]
+name = "wedding-api"
+version = "0.1.0"
+description = "Backend Xưởng Thiệp Hỷ — soạn thiệp cưới theo mẫu, quản lý khách mời, web thiệp công khai"
+requires-python = "==3.12.*"
+readme = "README.md"
+
+dependencies = [
+    # Web
+    "fastapi>=0.115,<0.121",
+    "uvicorn[standard]>=0.34,<0.41",
+    "python-multipart>=0.0.20",
+    # Validate / cấu hình
+    "pydantic>=2.9,<3",
+    "pydantic-settings>=2.6,<3",
+    "email-validator>=2.2",
+    # MongoDB: driver async + ODM trên Pydantic v2
+    "motor>=3.6,<4",
+    "pymongo>=4.9,<5",
+    "beanie>=1.27,<2",
+    # Redis: thu hồi phiên + giới hạn tần suất
+    "redis>=5.2,<7",
+    # Bảo mật
+    "argon2-cffi>=23.1",
+    "pyjwt>=2.10,<3",
+    # Log
+    "structlog>=24.4",
+    # Định danh
+    "uuid6>=2024.7.10",
+    # Ảnh cưới: kiểm định dạng + kích thước thật của tệp tải lên
+    "pillow>=11.0",
+    # Gọi cổng thanh toán (MoMo)
+    "httpx>=0.28",
+    # Gợi ý câu chữ thiệp bằng Claude (tắt khi không có ANTHROPIC_API_KEY)
+    "anthropic>=1.8,<2",
+    # Lưu ảnh (và file tải lên) trên MinIO / S3 thay vì trong MongoDB
+    "minio>=7.2,<8",
+    # Báo lỗi / hiệu năng về Sentry (tắt khi không có SENTRY_DSN)
+    "sentry-sdk[fastapi]>=2.19,<3",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3",
+    "pytest-asyncio>=0.24",
+    "pytest-cov>=6.0",
+    "ruff>=0.8",
+    "mypy>=1.13",
+]
+
+# Ứng dụng, không phải thư viện phân phối: uv không cần build backend.
+[tool.uv]
+package = false
+
+# ---------------------------------------------------------------------------
+# ruff — lint + format (chép nguyên bộ luật của ad-tracker-api)
+# ---------------------------------------------------------------------------
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+src = ["app", "tests"]
+
+[tool.ruff.lint]
+select = [
+    "E",      # pycodestyle
+    "W",      # pycodestyle warnings
+    "F",      # pyflakes
+    "I",      # isort
+    "N",      # pep8-naming
+    "UP",     # pyupgrade
+    "B",      # bugbear
+    "C4",     # comprehensions
+    "SIM",    # simplify
+    "TID",    # tidy imports
+    "RUF",    # ruff
+    "ASYNC",  # bẫy async
+    "S",      # bandit
+    "T20",    # cấm print (ARCHITECTURE §0.6)
+    "ANN",    # bắt buộc annotate
+    "PT",     # pytest style
+]
+ignore = [
+    "ANN401", # cho phép Any ở ranh giới thư viện ngoài
+    "B008",   # Depends() trong default argument là chuẩn FastAPI
+    "S101",   # assert dùng trong test
+    "RUF001", # chữ tiếng Việt / ký tự 囍 là chủ ý
+    "RUF002",
+    "RUF003",
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S105", "S106", "ANN201"]
+"app/seeds/**" = ["S105", "S106"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["app", "tests"]
+
+[tool.ruff.lint.flake8-tidy-imports]
+ban-relative-imports = "all"
+
+[tool.ruff.format]
+docstring-code-format = true
+
+# ---------------------------------------------------------------------------
+# mypy — strict
+# ---------------------------------------------------------------------------
+[tool.mypy]
+python_version = "3.12"
+strict = true
+warn_unreachable = true
+warn_unused_ignores = true
+disallow_any_generics = true
+no_implicit_reexport = true
+show_error_codes = true
+plugins = ["pydantic.mypy"]
+files = ["app", "tests"]
+
+[[tool.mypy.overrides]]
+module = ["uuid6.*", "motor.*"]
+ignore_missing_imports = true
+
+# ---------------------------------------------------------------------------
+# pytest
+# ---------------------------------------------------------------------------
+[tool.pytest.ini_options]
+minversion = "8.0"
+testpaths = ["tests"]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "session"
+# Fixture Motor sống theo phiên; test chạy ở loop riêng theo hàm thì mọi truy
+# vấn DB chết với "attached to a different loop". Hai dòng phải khớp nhau.
+asyncio_default_test_loop_scope = "session"
+addopts = "-q --strict-markers --strict-config"
+filterwarnings = [
+    "error::DeprecationWarning:app.*",
+    # Beanie 1.x / lazy_model đọc `model_fields` trên instance — cảnh báo của
+    # Pydantic 2.11 nằm TRONG thư viện, không phải mã của ta. Bỏ đúng câu này
+    # để mọi deprecation khác trong `app.*` vẫn làm đỏ test.
+    "ignore:Accessing the 'model_fields' attribute on the instance is deprecated:DeprecationWarning",
+]
+
+[tool.coverage.run]
+source = ["app"]
+omit = ["app/seeds/*"]

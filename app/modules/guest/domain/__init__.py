@@ -1,0 +1,1 @@
+"""Tầng domain của `guest`."""

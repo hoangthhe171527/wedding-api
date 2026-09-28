@@ -1,0 +1,1 @@
+"""Tầng application của `invitation`."""

@@ -1,0 +1,40 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.Python
+build/
+dist/
+
+# Môi trường
+.venv/
+venv/
+.env
+.env.local
+.env.*.local
+
+# Công cụ
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# Hệ điều hành
+.DS_Store
+Thumbs.db
+
+# Scratch của quy trình agent — không phải dữ liệu dự án.
+.superpowers/
+
+# Bí mật production — không bao giờ commit
+.env.prod
+deploy/.env.prod
+backups/

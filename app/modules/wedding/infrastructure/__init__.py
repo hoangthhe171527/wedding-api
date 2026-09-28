@@ -1,0 +1,1 @@
+"""Tầng infrastructure của `wedding`."""

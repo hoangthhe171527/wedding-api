@@ -1,0 +1,29 @@
+name: CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Dựng image dev (có ruff/mypy/pytest)
+        run: docker compose build api
+      - name: Khởi động MongoDB, Redis, S3 và API
+        run: docker compose up -d --wait
+      - name: Lint
+        run: docker compose exec -T api ruff check app tests
+      - name: Định dạng
+        run: docker compose exec -T api ruff format --check app tests
+      - name: Kiểu
+        run: docker compose exec -T api mypy app
+      - name: Test
+        run: docker compose exec -T api pytest -p no:cacheprovider -q
+      - name: Image production dựng được
+        run: docker build --target prod -t wedding-api:ci .
+      - name: Log khi hỏng
+        if: failure()
+        run: docker compose logs --tail 200

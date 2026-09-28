@@ -1,0 +1,167 @@
+# ---------------------------------------------------------------------------
+# Production: một máy chủ, web + API chung một domain sau Caddy (HTTPS tự động).
+#
+#   cp .env.prod.example .env.prod   # điền đủ bí mật
+#   docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
+#   docker compose -f docker-compose.prod.yml --env-file .env.prod exec api \
+#     python -m app.seeds.bootstrap_admin --email ops@ten-mien.vn
+#
+# Chỉ Caddy mở cổng ra ngoài. MongoDB / Redis / S3 nằm trong mạng nội bộ, có
+# mật khẩu — KHÁC docker-compose.yml (máy dev). Xem deploy/README.md.
+# ---------------------------------------------------------------------------
+name: wedding-prod
+
+x-restart: &restart
+  restart: unless-stopped
+
+services:
+  caddy:
+    <<: *restart
+    image: caddy:2.8.4-alpine
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      DOMAIN: ${DOMAIN:?Đặt DOMAIN, vd thiephy.vn}
+      MEDIA_DOMAIN: ${MEDIA_DOMAIN:?Đặt MEDIA_DOMAIN, vd media.thiephy.vn}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      web:
+        condition: service_healthy
+      api:
+        condition: service_healthy
+
+  web:
+    <<: *restart
+    build:
+      context: ../../wedding-web
+      args:
+        # Chung domain với API qua Caddy: một bản build dùng cho mọi môi trường.
+        VITE_API_BASE_URL: /api/v1
+    environment:
+      # CSP (có nonce theo từng request) do web dựng; cho phép ảnh từ kho công khai.
+      CSP_MEDIA_ORIGIN: https://${MEDIA_DOMAIN}
+
+  api:
+    <<: *restart
+    build:
+      context: ..
+      target: prod
+    env_file: .env.prod
+    environment:
+      ENV: ${APP_ENV:-production}
+      MONGODB_URL: mongodb://${MONGO_ROOT_USER:?}:${MONGO_ROOT_PASSWORD:?}@mongodb:27017/?replicaSet=rs0&authSource=admin&directConnection=true
+      REDIS_URL: redis://:${REDIS_PASSWORD:?Đặt REDIS_PASSWORD}@redis:6379/0
+      # Mặc định kho S3 tự host bên dưới; dùng R2 / AWS S3 thì đặt S3_ENDPOINT.
+      S3_ENDPOINT: ${S3_ENDPOINT:-http://s3:8333}
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY:?}
+      S3_SECRET_KEY: ${S3_SECRET_KEY:?}
+      S3_PUBLIC_URL: https://${MEDIA_DOMAIN}
+      PUBLIC_WEB_URL: https://${DOMAIN}
+      PUBLIC_API_URL: https://${DOMAIN}
+      CORS_ORIGINS: https://${DOMAIN}
+      # Đúng một proxy (Caddy) đứng trước; API không mở cổng ra ngoài.
+      TRUSTED_PROXY_HOPS: "1"
+      FORWARDED_ALLOW_IPS: "*"
+      UVICORN_WORKERS: ${UVICORN_WORKERS:-4}
+      AUTO_SEED: "false"
+    depends_on:
+      mongo-init:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+      s3:
+        condition: service_healthy
+
+  mongodb:
+    <<: *restart
+    image: mongo:7.0.14
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USER:?}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD:?}
+      MONGO_REPLICA_KEY: ${MONGO_REPLICA_KEY:?Đặt MONGO_REPLICA_KEY (openssl rand -base64 756)}
+    # Replica set bật xác thực cần keyFile: ghi từ biến môi trường, quyền 400.
+    entrypoint:
+      - bash
+      - -c
+      - |
+        printf '%s' "$$MONGO_REPLICA_KEY" > /data/configdb/keyfile
+        chmod 400 /data/configdb/keyfile
+        chown 999:999 /data/configdb/keyfile
+        exec docker-entrypoint.sh mongod --replSet rs0 --keyFile /data/configdb/keyfile --bind_ip_all
+    volumes:
+      - mongo_data:/data/db
+      - mongo_config:/data/configdb
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "-u", "${MONGO_ROOT_USER}", "-p", "${MONGO_ROOT_PASSWORD}", "--authenticationDatabase", "admin", "--eval", "db.adminCommand({ping:1}).ok"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 20s
+
+  mongo-init:
+    image: mongo:7.0.14
+    restart: "no"
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    entrypoint:
+      - bash
+      - -c
+      - |
+        mongosh --host mongodb:27017 -u "$$U" -p "$$P" --authenticationDatabase admin --quiet --eval '
+          try { rs.status(); print("replica set sẵn sàng"); }
+          catch (e) { rs.initiate({_id: "rs0", members: [{_id: 0, host: "mongodb:27017"}]}); print("đã khởi tạo rs0"); }
+        '
+        for i in $$(seq 1 30); do
+          mongosh --host mongodb:27017 -u "$$U" -p "$$P" --authenticationDatabase admin --quiet \
+            --eval 'db.hello().isWritablePrimary' | grep -q true && exit 0
+          sleep 1
+        done
+        exit 1
+    environment:
+      U: ${MONGO_ROOT_USER:?}
+      P: ${MONGO_ROOT_PASSWORD:?}
+
+  redis:
+    <<: *restart
+    image: redis:7.4.1-alpine
+    command: ["redis-server", "--appendonly", "yes", "--requirepass", "${REDIS_PASSWORD:?}"]
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "--no-auth-warning", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 12
+
+  # Kho ảnh S3 tự host (SeaweedFS, Apache 2.0 — Docker Hub đã ngừng phát image MinIO
+  # công khai). Muốn dùng Cloudflare R2 / AWS S3: đặt S3_ENDPOINT trong .env.prod,
+  # trỏ MEDIA_DOMAIN về domain / CDN của kho đó, bỏ service này.
+  s3:
+    <<: *restart
+    image: chrislusf/seaweedfs:3.97
+    command: ["server", "-s3", "-dir=/data"]
+    environment:
+      AWS_ACCESS_KEY_ID: ${S3_ACCESS_KEY:?}
+      AWS_SECRET_ACCESS_KEY: ${S3_SECRET_KEY:?}
+    volumes:
+      - s3_data:/data
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8333/status"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 15s
+
+volumes:
+  caddy_data:
+  caddy_config:
+  mongo_data:
+  mongo_config:
+  redis_data:
+  s3_data:

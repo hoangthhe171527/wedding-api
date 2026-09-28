@@ -1,0 +1,151 @@
+name: wedding-api
+
+# Cổng host lệch khỏi ad-tracker để hai hệ chạy song song không đụng nhau.
+# API 28080 · MongoDB 28017 · Redis 28379 · S3 (SeaweedFS) 28900
+#
+# MongoDB chạy dạng replica set một nút (rs0) để `transaction()` nguyên tử được ở
+# local — ví dụ bước "Lưu dữ liệu mẫu" ghi cùng lúc thông tin cưới và khách mời.
+
+services:
+  mongodb:
+    image: mongo:7
+    container_name: wedding-mongodb
+    restart: unless-stopped
+    command: ["mongod", "--replSet", "rs0", "--bind_ip_all"]
+    ports:
+      - "127.0.0.1:28017:27017"
+    volumes:
+      - mongo_data:/data/db
+      - mongo_config:/data/configdb
+    healthcheck:
+      # Healthy chỉ khi replica set đã khởi tạo xong và nút này là PRIMARY.
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.hello().isWritablePrimary"]
+      interval: 5s
+      timeout: 5s
+      retries: 24
+      start_period: 10s
+
+  mongo-init:
+    image: mongo:7
+    container_name: wedding-mongo-init
+    depends_on:
+      mongodb:
+        condition: service_started
+    restart: "no"
+    entrypoint:
+      - /bin/bash
+      - -c
+      - |
+        for i in $$(seq 1 60); do
+          if mongosh --host mongodb:27017 --quiet --eval 'db.adminCommand({ping:1})' > /dev/null 2>&1; then
+            break
+          fi
+          sleep 1
+        done
+        mongosh --host mongodb:27017 --quiet --eval '
+          try {
+            rs.status();
+            print("Replica set đã sẵn sàng.");
+          } catch (e) {
+            rs.initiate({_id: "rs0", members: [{_id: 0, host: "mongodb:27017"}]});
+            print("Đã khởi tạo replica set rs0.");
+          }
+        '
+
+  redis:
+    image: redis:7-alpine
+    container_name: wedding-redis
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "127.0.0.1:28379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 5s
+
+  # Kho object (S3) cho ảnh cưới và file tải lên — MongoDB chỉ giữ siêu dữ liệu.
+  # SeaweedFS (Apache 2.0): Docker Hub đã ngừng cho kéo image MinIO công khai.
+  # Code chỉ nói giao thức S3 — đổi sang R2 / AWS S3 chỉ cần đổi biến S3_*.
+  s3:
+    image: chrislusf/seaweedfs:3.97
+    container_name: wedding-s3
+    restart: unless-stopped
+    command: ["server", "-s3", "-dir=/data"]
+    environment:
+      AWS_ACCESS_KEY_ID: ${S3_ACCESS_KEY:-wedding}
+      AWS_SECRET_ACCESS_KEY: ${S3_SECRET_KEY:-wedding-local-secret}
+    ports:
+      - "127.0.0.1:28900:8333"
+    volumes:
+      - s3_data:/data
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8333/status"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 10s
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: dev
+    container_name: wedding-api
+    restart: unless-stopped
+    command: ["api"]
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      # File này CHỈ dành cho máy dev. Production: docker-compose.prod.yml.
+      ENV: local
+      MONGODB_URL: mongodb://mongodb:27017/?replicaSet=rs0&directConnection=true
+      MONGODB_DB: wedding
+      TEST_MONGODB_DB: wedding_test
+      REDIS_URL: redis://redis:6379/0
+      AUTO_SEED: ${AUTO_SEED:-true}
+      # Local: giả lập thanh toán và khoá webhook mẫu (Settings chặn giả lập ngoài local/test).
+      PAYMENT_SANDBOX: ${PAYMENT_SANDBOX:-true}
+      BANK_WEBHOOK_KEY: ${BANK_WEBHOOK_KEY:-local-dev-webhook-key}
+      S3_ENDPOINT: http://s3:8333
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY:-wedding}
+      S3_SECRET_KEY: ${S3_SECRET_KEY:-wedding-local-secret}
+      S3_BUCKET: ${S3_BUCKET:-wedding-media}
+      TEST_S3_BUCKET: wedding-media-test
+    ports:
+      - "28080:8000"
+    volumes:
+      # Bind mount để sửa code là thấy ngay, không cần build lại.
+      - ./app:/app/app
+      - ./tests:/app/tests
+      - ./contracts:/app/contracts:ro
+      # Cấu hình lint/typecheck/pytest cũng phải mount, nếu không sửa quy tắc
+      # trong pyproject.toml sẽ "không có tác dụng" cho tới khi build lại.
+      - ./pyproject.toml:/app/pyproject.toml:ro
+      - pycache:/var/cache/pycache
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      s3:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8000/health/live"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+volumes:
+  mongo_data:
+  mongo_config:
+  redis_data:
+  s3_data:
+  # Bytecode Python đã biên dịch — xoá lúc nào cũng được.
+  pycache:
