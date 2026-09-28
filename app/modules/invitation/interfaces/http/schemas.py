@@ -60,6 +60,13 @@ class ReplyIn(BaseModel):
     message: Annotated[str, Field(max_length=500)] = ""
 
 
+class WishIn(BaseModel):
+    """Sổ lưu bút: tên + lời chúc, không kèm xác nhận tham dự."""
+
+    name: Annotated[str, Field(min_length=1, max_length=160)]
+    message: Annotated[str, Field(min_length=1, max_length=500)]
+
+
 class OpenIn(BaseModel):
     """Khách mở link riêng: `g` là mã sau dấu #."""
 

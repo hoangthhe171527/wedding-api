@@ -14,11 +14,13 @@ from app.core.base_model import utc_now
 from app.modules.wedding.domain.design import CardDesign, DesignLayer
 from app.modules.wedding.domain.entities import (
     BankAccount,
+    DressCode,
     Event,
     Gift,
     Parents,
     Person,
     Rsvp,
+    ScheduleItem,
     Theme,
     Wedding,
     WeddingContent,
@@ -45,6 +47,7 @@ def _content_of(doc: WeddingDocument) -> WeddingContent:
                 venue=item.venue,
                 address=item.address,
                 map_url=item.map_url,
+                arrival=item.arrival,
             )
             for item in doc.events
         ),
@@ -74,6 +77,8 @@ def _content_of(doc: WeddingDocument) -> WeddingContent:
             base=doc.card_design.base,
             layers=tuple(DesignLayer(**item.model_dump()) for item in doc.card_design.layers),
         ),
+        schedule=tuple(ScheduleItem(time=item.time, label=item.label) for item in doc.schedule),
+        dress_code=DressCode(note=doc.dress_code.note, colors=tuple(doc.dress_code.colors)),
     )
 
 

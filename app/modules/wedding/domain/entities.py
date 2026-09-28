@@ -47,6 +47,24 @@ class Event:
     venue: str = ""
     address: str = ""
     map_url: str = ""
+    #: Giờ đón khách (`HH:MM`), trước giờ khai tiệc `time`. Rỗng = không hiện.
+    arrival: str = ""
+
+
+@dataclass(frozen=True, slots=True)
+class ScheduleItem:
+    """Một mốc trong lịch trình ngày cưới (đón khách, khai tiệc, cắt bánh...)."""
+
+    time: str = ""
+    label: str = ""
+
+
+@dataclass(frozen=True, slots=True)
+class DressCode:
+    """Trang phục gợi ý: một dòng ghi chú + vài màu (`#RRGGBB`)."""
+
+    note: str = ""
+    colors: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)
@@ -144,6 +162,9 @@ class WeddingContent:
     theme: Theme = field(default_factory=Theme)
     #: Thiệp tự thiết kế (lớp đặt tự do); tắt = dùng bố cục của mẫu.
     card_design: CardDesign = field(default_factory=CardDesign)
+    #: Lịch trình ngày cưới — rỗng thì web thiệp bỏ hẳn phần này.
+    schedule: tuple[ScheduleItem, ...] = ()
+    dress_code: DressCode = field(default_factory=DressCode)
 
 
 @dataclass(frozen=True, slots=True)

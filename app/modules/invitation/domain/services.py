@@ -29,6 +29,8 @@ PUBLIC_WEDDING_KEYS: Final[frozenset[str]] = frozenset(
         "open_style",
         "theme",
         "card_design",
+        "schedule",
+        "dress_code",
         "slug",
         "site_url",
     }

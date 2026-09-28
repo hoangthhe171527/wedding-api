@@ -22,6 +22,7 @@ from app.modules.invitation.infrastructure.providers import (
     ListPublicWishesDep,
     RecordOpenDep,
     SubmitReplyDep,
+    SubmitWishDep,
 )
 from app.modules.invitation.interfaces.http.schemas import (
     InvitationOut,
@@ -29,6 +30,7 @@ from app.modules.invitation.interfaces.http.schemas import (
     PublicWishOut,
     ReplyIn,
     ReplyOut,
+    WishIn,
 )
 
 router = APIRouter(prefix="/public/invitations", tags=["Web thiệp công khai"])
@@ -94,6 +96,25 @@ async def submit_reply(
         message=payload.message,
     )
     return ok(ReplyOut.model_validate(result))
+
+
+@router.post(
+    "/{slug}/wishes",
+    status_code=status.HTTP_201_CREATED,
+    summary="Gửi lời chúc vào sổ lưu bút (không kèm xác nhận tham dự)",
+)
+async def submit_wish(
+    slug: Slug, payload: WishIn, request: Request, use_case: SubmitWishDep
+) -> dict[str, Any]:
+    await rate_limit.guard(
+        "invitation_reply",
+        f"{client_ip(request) or 'unknown'}:{slug}",
+        limit=_REPLY_LIMIT_PER_10_MIN,
+        window_seconds=600,
+        message="Bạn đã gửi nhiều lời chúc. Vui lòng thử lại sau ít phút.",
+        code="reply_rate_limited",
+    )
+    return ok(await use_case.execute(slug, name=payload.name, message=payload.message))
 
 
 @router.get(

@@ -46,6 +46,21 @@ class SubmitReply:
         )
 
 
+class SubmitWish:
+    """Sổ lưu bút trên web thiệp: chỉ lời chúc, không xác nhận tham dự."""
+
+    def __init__(self, weddings: PublishedWeddings, replies: GuestReplies) -> None:
+        self._weddings = weddings
+        self._replies = replies
+
+    async def execute(self, slug: str, *, name: str, message: str) -> dict[str, Any]:
+        """Raises: NotFoundError (thiệp chưa mở), ValidationError (thiếu tên / lời chúc)."""
+        found = await self._weddings.by_slug(slug)
+        if found is None:
+            raise invitation_not_found()
+        return await self._replies.wish(found[0], name=name, message=message)
+
+
 class ListPublicWishes:
     def __init__(self, weddings: PublishedWeddings, replies: GuestReplies) -> None:
         self._weddings = weddings
@@ -82,4 +97,4 @@ class RecordOpen:
             await self._replies.record_open(tenant_id, code)
 
 
-__all__ = ["ListPublicWishes", "RecordOpen", "SubmitReply"]
+__all__ = ["ListPublicWishes", "RecordOpen", "SubmitReply", "SubmitWish"]

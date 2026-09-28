@@ -49,7 +49,12 @@ class PlanGate:
             "required": result.required.value,
             "required_label": PLAN_SPECS[result.required].label,
             "violations": [
-                {"code": item.code, "message": item.message, "plan": item.plan.value}
+                {
+                    "code": item.code,
+                    "message": item.message,
+                    "plan": item.plan.value,
+                    "subject": item.subject,
+                }
                 for item in result.violations
             ],
         }

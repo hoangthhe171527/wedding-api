@@ -21,6 +21,9 @@ from app.modules.wedding.domain.enums import (
     Tone,
 )
 
+#: Lịch trình ngày cưới và màu dress code: đủ cho một ngày cưới, không thành danh sách dài.
+MAX_SCHEDULE: Final = 12
+MAX_DRESS_COLORS: Final = 6
 _TIME_RE: Final = re.compile(r"^([01]\d|2[0-3]):[0-5]\d$")
 _SLUG_RE: Final = re.compile(r"^[a-z0-9](?:[a-z0-9-]{1,58}[a-z0-9])$")
 _URL_RE: Final = re.compile(r"^https?://\S+$", re.IGNORECASE)
@@ -67,6 +70,19 @@ def validate_content(content: WeddingContent, *, known_templates: frozenset[str]
             add(f"{base}.time", "Giờ không đúng định dạng HH:MM.")
         if event.map_url and not _URL_RE.match(event.map_url):
             add(f"{base}.map_url", "Link bản đồ phải bắt đầu bằng http:// hoặc https://.")
+        if event.arrival and not _TIME_RE.match(event.arrival):
+            add(f"{base}.arrival", "Giờ đón khách không đúng định dạng HH:MM.")
+
+    if len(content.schedule) > MAX_SCHEDULE:
+        add("schedule", f"Lịch trình tối đa {MAX_SCHEDULE} mốc.")
+    for index, item in enumerate(content.schedule):
+        if item.time and not _TIME_RE.match(item.time):
+            add(f"schedule.{index}.time", "Giờ không đúng định dạng HH:MM.")
+    if len(content.dress_code.colors) > MAX_DRESS_COLORS:
+        add("dress_code.colors", f"Tối đa {MAX_DRESS_COLORS} màu.")
+    for index, color in enumerate(content.dress_code.colors):
+        if not _HEX_RE.match(color):
+            add(f"dress_code.colors.{index}", "Màu phải có dạng #RRGGBB.")
 
     if content.rsvp.url and not _URL_RE.match(content.rsvp.url):
         add("rsvp.url", "Link xác nhận phải bắt đầu bằng http:// hoặc https://.")

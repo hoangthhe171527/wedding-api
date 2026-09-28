@@ -47,6 +47,8 @@ class GuestReplies(Protocol):
 
     async def record_open(self, tenant_id: UUID, code: str) -> bool: ...
 
+    async def wish(self, tenant_id: UUID, *, name: str, message: str) -> dict[str, Any]: ...
+
 
 class Entitlements(Protocol):
     """Quyền của gói hiện tại: `per_guest_links`, `remove_badge` (module `billing`)."""

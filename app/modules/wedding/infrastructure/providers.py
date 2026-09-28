@@ -29,7 +29,10 @@ def provide_get_wedding() -> GetWedding:
 
 def provide_setup_wedding() -> SetupWedding:
     return SetupWedding(
-        BeanieWeddingRepository(), build_guest_seeder(), build_catalog_defaults_reader()
+        BeanieWeddingRepository(),
+        build_guest_seeder(),
+        build_catalog_defaults_reader(),
+        build_plan_gate(),
     )
 
 

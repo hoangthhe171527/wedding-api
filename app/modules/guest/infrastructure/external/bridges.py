@@ -13,7 +13,12 @@ from collections.abc import Sequence
 from typing import Any
 from uuid import UUID
 
-from app.modules.guest.application.use_cases import Reply, RespondToInvitation, SeedSampleGuests
+from app.modules.guest.application.use_cases import (
+    LeaveWish,
+    Reply,
+    RespondToInvitation,
+    SeedSampleGuests,
+)
 from app.modules.guest.domain.enums import RsvpStatus
 from app.modules.guest.domain.services import is_valid_code
 from app.modules.guest.infrastructure.persistence.repositories import (
@@ -94,6 +99,10 @@ class GuestResponder:
             Reply(code=code, name=name, status=RsvpStatus(status), count=count, message=message),
         )
         return {"name": wish.name, "status": wish.status.value, "count": wish.count}
+
+    async def wish(self, tenant_id: UUID, *, name: str, message: str) -> dict[str, Any]:
+        wish = await LeaveWish(self._wishes).execute(tenant_id, name=name, message=message)
+        return {"name": wish.name}
 
     async def record_open(self, tenant_id: UUID, code: str) -> bool:
         code = code.strip().lower()

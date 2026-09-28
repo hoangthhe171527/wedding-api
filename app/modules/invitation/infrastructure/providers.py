@@ -13,6 +13,7 @@ from app.modules.invitation.application.use_cases import (
     ListPublicWishes,
     RecordOpen,
     SubmitReply,
+    SubmitWish,
 )
 from app.modules.media import build_public_photo_lister
 from app.modules.template import build_catalog_defaults_reader
@@ -39,6 +40,10 @@ def provide_list_public_wishes() -> ListPublicWishes:
     return ListPublicWishes(build_published_wedding_reader(), build_guest_responder())
 
 
+def provide_submit_wish() -> SubmitWish:
+    return SubmitWish(build_published_wedding_reader(), build_guest_responder())
+
+
 def provide_record_open() -> RecordOpen:
     return RecordOpen(
         build_published_wedding_reader(), build_guest_responder(), build_entitlement_reader()
@@ -50,5 +55,12 @@ SubmitReplyDep = Annotated[SubmitReply, Depends(provide_submit_reply)]
 ListPublicWishesDep = Annotated[ListPublicWishes, Depends(provide_list_public_wishes)]
 
 RecordOpenDep = Annotated[RecordOpen, Depends(provide_record_open)]
+SubmitWishDep = Annotated[SubmitWish, Depends(provide_submit_wish)]
 
-__all__ = ["GetInvitationDep", "ListPublicWishesDep", "RecordOpenDep", "SubmitReplyDep"]
+__all__ = [
+    "GetInvitationDep",
+    "ListPublicWishesDep",
+    "RecordOpenDep",
+    "SubmitReplyDep",
+    "SubmitWishDep",
+]

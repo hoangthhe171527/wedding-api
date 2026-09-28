@@ -9,6 +9,13 @@ from typing import Final
 class Family(StrEnum):
     """Dòng mẫu (bộ lọc chip ở tab Mẫu thiệp)."""
 
+    MINIMAL = "minimal"
+    #: Web thiệp kiểu kể chuyện (bộ máy Story ở web: `src/lib/story`).
+    STORY_MINIMAL = "story-minimal"
+    STORY_TRAD = "story-trad"
+    STORY_FLORAL = "story-floral"
+    STORY_LUXE = "story-luxe"
+    STORY_ROMANCE = "story-romance"
     MOTION = "motion"
     ROYAL = "royal"
     MODERN = "modern"
@@ -56,6 +63,10 @@ class Layout(StrEnum):
     DECO = "deco"
     FLORA = "flora"
     LOTUS = "lotus"
+    #: Bộ "Tối giản" (web: `lib/invite/modern-templates.ts`).
+    MINIMAL = "minimal"
+    TYPE = "type"
+    STORY = "story"
 
 
 class Tier(StrEnum):
@@ -80,6 +91,12 @@ FAMILY_LABELS: Final[dict[Family, str]] = {
     Family.MOTION: "Hoạt hình",
     Family.ROYAL: "Cung đình lộng lẫy",
     Family.MODERN: "Hiện đại",
+    Family.MINIMAL: "Tối giản",
+    Family.STORY_MINIMAL: "Tối giản sang trọng",
+    Family.STORY_TRAD: "Hỷ truyền thống",
+    Family.STORY_FLORAL: "Hoa mộc",
+    Family.STORY_LUXE: "Hoàng gia",
+    Family.STORY_ROMANCE: "Lãng mạn",
     Family.RED: "Sắc đỏ",
     Family.TRAD: "Truyền thống Việt",
     Family.GOLD: "Vàng champagne",

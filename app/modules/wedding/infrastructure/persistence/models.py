@@ -42,6 +42,17 @@ class EventModel(BaseModel):
     venue: str = ""
     address: str = ""
     map_url: str = ""
+    arrival: str = ""
+
+
+class ScheduleItemModel(BaseModel):
+    time: str = ""
+    label: str = ""
+
+
+class DressCodeModel(BaseModel):
+    note: str = ""
+    colors: list[str] = Field(default_factory=list)
 
 
 class RsvpModel(BaseModel):
@@ -137,6 +148,8 @@ class WeddingDocument(TenantScopedDocument):
     open_style: str = ""
     theme: ThemeModel = Field(default_factory=ThemeModel)
     card_design: CardDesignModel = Field(default_factory=CardDesignModel)
+    schedule: list[ScheduleItemModel] = Field(default_factory=list)
+    dress_code: DressCodeModel = Field(default_factory=DressCodeModel)
     checklist: dict[str, bool] = Field(default_factory=dict)
 
     class Settings(TenantScopedDocument.Settings):

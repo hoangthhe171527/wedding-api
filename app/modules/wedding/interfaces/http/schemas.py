@@ -17,11 +17,13 @@ from app.modules.wedding.application.use_cases import StudioOverview
 from app.modules.wedding.domain.design import MAX_LAYERS, CardDesign, DesignLayer
 from app.modules.wedding.domain.entities import (
     BankAccount,
+    DressCode,
     Event,
     Gift,
     Parents,
     Person,
     Rsvp,
+    ScheduleItem,
     Theme,
     Wedding,
     WeddingContent,
@@ -71,6 +73,7 @@ class EventIO(BaseModel):
     venue: Line = ""
     address: Line = ""
     map_url: Url = ""
+    arrival: Annotated[str, Field(max_length=5)] = ""
 
     def to_domain(self) -> Event:
         return Event(
@@ -83,6 +86,7 @@ class EventIO(BaseModel):
             venue=self.venue,
             address=self.address,
             map_url=self.map_url,
+            arrival=self.arrival,
         )
 
     @classmethod
@@ -97,7 +101,20 @@ class EventIO(BaseModel):
             venue=item.venue,
             address=item.address,
             map_url=item.map_url,
+            arrival=item.arrival,
         )
+
+
+class ScheduleItemIO(BaseModel):
+    time: Annotated[str, Field(max_length=5)] = ""
+    label: Annotated[str, Field(max_length=80)] = ""
+
+
+class DressCodeIO(BaseModel):
+    note: Annotated[str, Field(max_length=120)] = ""
+    colors: Annotated[list[Annotated[str, Field(max_length=7)]], Field(max_length=12)] = Field(
+        default_factory=list
+    )
 
 
 class RsvpIO(BaseModel):
@@ -264,6 +281,8 @@ class WeddingContentIO(BaseModel):
     open_style: OpenStyle = OpenStyle.BY_TEMPLATE
     theme: ThemeIO = Field(default_factory=ThemeIO)
     card_design: CardDesignIO = Field(default_factory=CardDesignIO)
+    schedule: Annotated[list[ScheduleItemIO], Field(max_length=30)] = Field(default_factory=list)
+    dress_code: DressCodeIO = Field(default_factory=DressCodeIO)
 
     def to_domain(self) -> WeddingContent:
         return WeddingContent(
@@ -288,6 +307,11 @@ class WeddingContentIO(BaseModel):
             open_style=self.open_style,
             theme=self.theme.to_domain(),
             card_design=self.card_design.to_domain(),
+            schedule=tuple(ScheduleItem(time=i.time, label=i.label.strip()) for i in self.schedule),
+            dress_code=DressCode(
+                note=self.dress_code.note.strip(),
+                colors=tuple(color.upper() for color in self.dress_code.colors),
+            ),
         )
 
     @classmethod
@@ -314,6 +338,10 @@ class WeddingContentIO(BaseModel):
             open_style=content.open_style,
             theme=ThemeIO.of(content.theme),
             card_design=CardDesignIO.of(content.card_design),
+            schedule=[ScheduleItemIO(time=i.time, label=i.label) for i in content.schedule],
+            dress_code=DressCodeIO(
+                note=content.dress_code.note, colors=list(content.dress_code.colors)
+            ),
         )
 
 
@@ -344,6 +372,8 @@ class PlanViolationOut(BaseModel):
     code: str
     message: str
     plan: str
+    #: Khoá mẫu khi `code="template"` — web gợi ý đổi đúng mẫu đó.
+    subject: str = ""
 
 
 class PlanCheckOut(BaseModel):

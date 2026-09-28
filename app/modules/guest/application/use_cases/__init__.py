@@ -6,6 +6,7 @@ from app.modules.guest.application.use_cases.import_guests import ImportGuests, 
 from app.modules.guest.application.use_cases.list_guests import ListGuests
 from app.modules.guest.application.use_cases.replies import (
     DeleteWish,
+    LeaveWish,
     ListWishes,
     Reply,
     RespondToInvitation,
@@ -20,6 +21,7 @@ __all__ = [
     "GuestPatch",
     "ImportGuests",
     "ImportResult",
+    "LeaveWish",
     "ListGuests",
     "ListWishes",
     "Reply",

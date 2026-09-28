@@ -122,13 +122,13 @@ async def test_xuat_ban_va_mo_web_thiep(client: AsyncClient, customer: Session) 
     # Khách có mẫu riêng.
     trang = await guest_code(client, customer, "Thu Trang")
     friend = (await client.get(f"{API}/public/invitations/h-hoang-ha?g={trang}")).json()["data"]
-    assert friend["template"] == "hongphale"
+    assert friend["template"] == "xothom"
 
     # Mã sai: vẫn mở như link chung, không báo mã có thật hay không.
     general = await client.get(f"{API}/public/invitations/h-hoang-ha?g=zzzzzz")
     assert general.status_code == 200
     assert general.json()["data"]["guest"] is None
-    assert general.json()["data"]["template"] == "uyenuong"
+    assert general.json()["data"]["template"] == "ngoctrai"
 
 
 async def test_tat_hop_mung_cuoi_thi_so_tai_khoan_khong_len_mang(

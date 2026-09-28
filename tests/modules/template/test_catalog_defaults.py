@@ -48,7 +48,9 @@ async def test_luu_va_ap_mac_dinh(client: AsyncClient, admin: Session, customer:
     public = (await client.get(f"{API}/templates/defaults")).json()["data"]
     assert public["group_templates"]["Họ hàng"] == "songhy"
 
-    # Xưởng mới nhận mẫu theo nhóm khách của hệ thống.
+    # Xưởng mới nhận mẫu theo nhóm khách của hệ thống (xưởng đã ở gói đủ dùng mẫu đó;
+    # xưởng gói thấp hơn giữ mẫu miễn phí — xem test_setup_theo_goi.py).
+    await buy_plan(client, customer, "premium")
     created = await client.post(
         f"{API}/wedding/setup", json={"mode": "sample"}, headers=customer.headers
     )
@@ -59,7 +61,6 @@ async def test_luu_va_ap_mac_dinh(client: AsyncClient, admin: Session, customer:
     assert wedding["default_template"] == "ngoctrai"
 
     # Web thiệp nhận kèm câu chữ mặc định.
-    await buy_plan(client, customer, "premium")
     await client.put(
         f"{API}/wedding/publication",
         json={"slug": "h-hoang-ha", "published": True},

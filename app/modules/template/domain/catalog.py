@@ -66,6 +66,96 @@ _BLUEPRINTS: Final[tuple[Template, ...]] = (
     _t("kimtuyen", "Mưa Kim Tuyến", Family.MOTION, Layout.LUX, Tone.FRIENDS, new=True),
 )
 
+#: Bộ "Tối giản" — mẫu hiện đại, chữ lớn dễ đọc, nền phẳng (không hiệu ứng canvas).
+#: Bản vẽ ở web: `lib/invite/modern-templates.ts` — khoá phải trùng.
+_MODERN_BLUEPRINTS: Final[tuple[Template, ...]] = (
+    _t("tgdodo", "Thanh Nhã Đỏ Đô", Family.MINIMAL, Layout.MINIMAL, Tone.FAMILY, new=True),
+    _t("tgreu", "Thanh Nhã Xanh Rêu", Family.MINIMAL, Layout.MINIMAL, Tone.FORMAL, new=True),
+    _t("tglam", "Thanh Nhã Lam Đêm", Family.MINIMAL, Layout.MINIMAL, Tone.FORMAL, new=True),
+    _t("tgnau", "Thanh Nhã Nâu Cà Phê", Family.MINIMAL, Layout.MINIMAL, Tone.FAMILY, new=True),
+    _t("tgtim", "Thanh Nhã Tím Khói", Family.MINIMAL, Layout.MINIMAL, Tone.FRIENDS, new=True),
+    _t("ncmuc", "Nét Chữ Mực Đỏ", Family.MINIMAL, Layout.TYPE, Tone.FRIENDS, new=True),
+    _t("ncden", "Nét Chữ Đen Vàng", Family.MINIMAL, Layout.TYPE, Tone.FORMAL, new=True),
+    _t("ncdat", "Nét Chữ Hồng Đất", Family.MINIMAL, Layout.TYPE, Tone.FRIENDS, new=True),
+    _t("ncbien", "Nét Chữ Xanh Biển", Family.MINIMAL, Layout.TYPE, Tone.FORMAL, new=True),
+    _t("ncreu", "Nét Chữ Rêu Đêm", Family.MINIMAL, Layout.TYPE, Tone.FAMILY, new=True),
+)
+
+
+def _story(key: str, name: str, family: Family, tone: Tone) -> Template:
+    return _t(key, name, family, Layout.STORY, tone, new=True)
+
+
+#: Web thiệp kiểu kể chuyện: mở bằng ảnh cưới, trang tự cuộn (web: `src/lib/story/themes`).
+_STORY_BLUEPRINTS: Final[tuple[Template, ...]] = (
+    _story("stsonghyxanh", "Song Hỷ Xanh", Family.STORY_TRAD, Tone.FAMILY),
+    _story("stmndodam", "Minimalism Đỏ Đậm", Family.STORY_MINIMAL, Tone.FORMAL),
+    _story("stminimalismnau", "Minimalism Nâu", Family.STORY_MINIMAL, Tone.FORMAL),
+    _story("stsonglongdo", "Song Long Đỏ", Family.STORY_TRAD, Tone.FAMILY),
+    _story("stsonghydo", "Song Hỷ Đỏ", Family.STORY_TRAD, Tone.FAMILY),
+    _story("sthoamocxanh", "Hoa Mộc Xanh", Family.STORY_FLORAL, Tone.FRIENDS),
+    _story("stlongphungv3do", "Long Phụng V3 Đỏ", Family.STORY_TRAD, Tone.FAMILY),
+    _story("stsongphungdo", "Song Phụng Đỏ", Family.STORY_TRAD, Tone.FAMILY),
+    _story("stlaudaixanh", "Lâu Đài Xanh", Family.STORY_ROMANCE, Tone.FRIENDS),
+    _story("stmailantrang", "Mai Lan Trắng", Family.STORY_MINIMAL, Tone.FORMAL),
+    _story("stvuonkinhhong", "Vườn Kính Hồng", Family.STORY_ROMANCE, Tone.FRIENDS),
+    _story("stvuonkinhxanh", "Vườn Kính Xanh", Family.STORY_ROMANCE, Tone.FRIENDS),
+    _story("stlongphungdo", "Long Phụng Đỏ", Family.STORY_TRAD, Tone.FAMILY),
+    _story("stminimalismxanh", "Minimalism Xanh", Family.STORY_MINIMAL, Tone.FORMAL),
+    _story("stbaroquev2dodam", "Baroque V2 Đỏ Đậm", Family.STORY_LUXE, Tone.FORMAL),
+    _story("stvuonxuanlam", "Vườn Xuân Lam", Family.STORY_MINIMAL, Tone.FORMAL),
+    _story("stlongphungv2do", "Long Phụng V2 Đỏ", Family.STORY_TRAD, Tone.FAMILY),
+    _story("stthanhdiepxanh", "Thanh Diệp Xanh", Family.STORY_MINIMAL, Tone.FORMAL),
+    _story("stnhatbinhdo", "Nhật Bình Đỏ", Family.STORY_TRAD, Tone.FAMILY),
+    _story("stlongphungv4do", "Long Phụng V4 Đỏ", Family.STORY_TRAD, Tone.FAMILY),
+    _story("sttoduyendodam", "Tơ Duyên Đỏ Đậm", Family.STORY_MINIMAL, Tone.FORMAL),
+    _story("stchibired", "Chibi Đỏ", Family.STORY_ROMANCE, Tone.FRIENDS),
+    _story("stsonglongxanh", "Song Long Xanh", Family.STORY_TRAD, Tone.FAMILY),
+    _story("sttoduyenxanh", "Tơ Duyên Xanh", Family.STORY_MINIMAL, Tone.FORMAL),
+    _story("stlongphungxanh", "Long Phụng Xanh", Family.STORY_TRAD, Tone.FAMILY),
+    _story("sttoduyenhong", "Tơ Duyên Hồng", Family.STORY_MINIMAL, Tone.FORMAL),
+    _story("stlaudailam", "Lâu Đài Lam", Family.STORY_LUXE, Tone.FORMAL),
+    _story("stvuonxuanxanh", "Vườn Xuân Xanh", Family.STORY_ROMANCE, Tone.FRIENDS),
+    _story("stsonghacdo", "Song Hạc Đỏ", Family.STORY_TRAD, Tone.FAMILY),
+    _story("sthoamochong", "Hoa Mộc Hồng", Family.STORY_FLORAL, Tone.FRIENDS),
+    _story("sthoangkimdo", "Hoàng Kim Đỏ", Family.STORY_LUXE, Tone.FORMAL),
+    _story("stsonglonglam", "Song Long Lam", Family.STORY_TRAD, Tone.FAMILY),
+    _story("stminimalismdo", "Minimalism Đỏ", Family.STORY_MINIMAL, Tone.FORMAL),
+    _story("sthoaluanau", "Hoa Lụa Nâu", Family.STORY_MINIMAL, Tone.FORMAL),
+    _story("stminimalismlamdam", "Minimalism Lam Đậm", Family.STORY_MINIMAL, Tone.FORMAL),
+    _story("sthoamocnau", "Hoa Mộc Nâu", Family.STORY_FLORAL, Tone.FRIENDS),
+    _story("stvuonxuando", "Vườn Xuân Đỏ", Family.STORY_ROMANCE, Tone.FRIENDS),
+    _story("stsongphungxanh", "Song Phụng Xanh", Family.STORY_TRAD, Tone.FAMILY),
+    _story("stanhdaohong", "Anh Đào Hồng", Family.STORY_ROMANCE, Tone.FRIENDS),
+    _story("stlienhoahong", "Liên Hoa", Family.STORY_MINIMAL, Tone.FORMAL),
+    _story("sthoangkimxanh", "Hoàng Kim Xanh", Family.STORY_LUXE, Tone.FORMAL),
+    _story("sthoanggiavang", "Baroque Gold", Family.STORY_LUXE, Tone.FORMAL),
+    _story("stlienhoav2xanh", "Liên Hoa V2 Xanh", Family.STORY_TRAD, Tone.FAMILY),
+    _story("stbaroquev2xanhdam", "Baroque V2 Xanh Đậm", Family.STORY_LUXE, Tone.FORMAL),
+    _story("stlongphunglam", "Long Phụng Lam", Family.STORY_TRAD, Tone.FAMILY),
+    _story("sthoatinhdo", "Hoạ Tình Đỏ", Family.STORY_MINIMAL, Tone.FORMAL),
+    _story("sthoathuytinhlam", "Hoa Thuỷ Tinh Lam", Family.STORY_MINIMAL, Tone.FORMAL),
+    _story("stcobado", "Cô Ba Đỏ", Family.STORY_TRAD, Tone.FAMILY),
+    _story("sthoangkimlam", "Hoàng Kim Lam", Family.STORY_LUXE, Tone.FORMAL),
+    _story("stbaroquev2lamdam", "Baroque V2 Lam Đậm", Family.STORY_LUXE, Tone.FORMAL),
+    _story("stbachsuv2hong", "Bạch Sứ V2 Hồng", Family.STORY_ROMANCE, Tone.FRIENDS),
+    _story("sthoangkimiixanh", "Hoàng Kim II Xanh", Family.STORY_LUXE, Tone.FORMAL),
+    _story("stlongphunghuyen", "Long Phụng Huyền", Family.STORY_TRAD, Tone.FAMILY),
+    _story("sthoahuongduong", "Hoa Hướng Dương", Family.STORY_ROMANCE, Tone.FRIENDS),
+    _story("stminimalismnaudam", "Minimalism Nâu Đậm", Family.STORY_MINIMAL, Tone.FORMAL),
+    _story("stminimalismtim", "Minimalism Tím", Family.STORY_MINIMAL, Tone.FORMAL),
+    _story("stbachsunau", "Bạch Sứ Nâu", Family.STORY_LUXE, Tone.FORMAL),
+    _story("stbachsuv2xanh", "Bạch Sứ V2 Xanh", Family.STORY_ROMANCE, Tone.FRIENDS),
+    _story("sthoathuytinhxanh", "Hoa Thuỷ Tinh Xanh", Family.STORY_MINIMAL, Tone.FORMAL),
+    _story("stbachsulam", "Bạch Sứ Lam", Family.STORY_MINIMAL, Tone.FORMAL),
+    _story("stbachsuv2do", "Bạch Sứ II Đỏ", Family.STORY_LUXE, Tone.FORMAL),
+    _story("sthoathuytinhdo", "Hoa Thuỷ Tinh Đỏ", Family.STORY_MINIMAL, Tone.FORMAL),
+    _story("stbachsudo", "Bạch Sứ Đỏ", Family.STORY_TRAD, Tone.FAMILY),
+    _story("sthoangkimiitim", "Hoàng Kim II Tím", Family.STORY_LUXE, Tone.FORMAL),
+    _story("stvuonkinhlam", "Vườn Kính Lam", Family.STORY_ROMANCE, Tone.FRIENDS),
+    _story("sthoakhocam", "Hoa Khô", Family.STORY_FLORAL, Tone.FRIENDS),
+)
+
 #: Mẫu dùng được ở gói Miễn phí: năm mẫu cổ điển, mở bằng phong bì hoặc cuộn thư.
 FREE_KEYS: Final[frozenset[str]] = frozenset({"songhy", "hongphuc", "ngoctrai", "maudon", "xothom"})
 
@@ -83,20 +173,25 @@ def tier_of(item: Template) -> Tier:
     return Tier.STANDARD
 
 
-#: Thứ tự hiển thị mặc định bước 10 để đội vận hành chèn mẫu vào giữa được.
-TEMPLATE_BLUEPRINTS: Final[tuple[Template, ...]] = tuple(
-    Template(
+def _ordered(item: Template, sort_order: int) -> Template:
+    return Template(
         key=item.key,
         name=item.name,
         family=item.family,
         tone=item.tone,
         layout=item.layout,
         is_new=item.is_new,
-        sort_order=(index + 1) * 10,
+        sort_order=sort_order,
         tier=tier_of(item),
     )
-    for index, item in enumerate(_BLUEPRINTS)
-)
+
+
+#: Thứ tự hiển thị mặc định bước 10 để đội vận hành chèn mẫu vào giữa được. Bộ Tối giản
+#: đứng TRƯỚC (1, 2, 3...): seed chỉ tạo mẫu còn thiếu, không đổi thứ tự mẫu đã có.
+TEMPLATE_BLUEPRINTS: Final[tuple[Template, ...]] = (
+    tuple(_ordered(item, 0) for item in _STORY_BLUEPRINTS)
+    + tuple(_ordered(item, index + 1) for index, item in enumerate(_MODERN_BLUEPRINTS))
+) + tuple(_ordered(item, (index + 1) * 10) for index, item in enumerate(_BLUEPRINTS))
 
 #: Mẫu mặc định cho khách chung (link không mã), theo dữ liệu mẫu của thiết kế.
 DEFAULT_TEMPLATE_KEY: Final[str] = "uyenuong"

@@ -77,6 +77,8 @@ class Violation:
     code: str
     message: str
     plan: Plan
+    #: Đối tượng vi phạm khi có (khoá mẫu với `code="template"`) — để bên gọi tự sửa.
+    subject: str = ""
 
 
 __all__ = ["Order", "PaymentEvent", "Usage", "Violation"]

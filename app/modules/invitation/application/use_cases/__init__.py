@@ -9,6 +9,7 @@ from app.modules.invitation.application.use_cases.replies import (
     ListPublicWishes,
     RecordOpen,
     SubmitReply,
+    SubmitWish,
 )
 
 __all__ = [
@@ -17,5 +18,6 @@ __all__ = [
     "ListPublicWishes",
     "RecordOpen",
     "SubmitReply",
+    "SubmitWish",
     "invitation_not_found",
 ]

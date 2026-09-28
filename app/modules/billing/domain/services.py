@@ -84,6 +84,7 @@ def violations(
                     code="template",
                     message=f"Mẫu “{name}” thuộc {PLAN_SPECS[needed].label}.",
                     plan=needed,
+                    subject=key,
                 )
             )
 

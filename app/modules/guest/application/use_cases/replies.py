@@ -81,6 +81,30 @@ class RespondToInvitation:
         return wish
 
 
+class LeaveWish:
+    """Sổ lưu bút: khách chỉ gửi lời chúc, không xác nhận tham dự (trạng thái `none`)."""
+
+    def __init__(self, wishes: WishRepository) -> None:
+        self._wishes = wishes
+
+    async def execute(self, tenant_id: UUID, *, name: str, message: str) -> Wish:
+        """Raises: ValidationError (thiếu tên hoặc lời chúc)."""
+        name = name.strip()[:160]
+        message = message.strip()[:MAX_WISH_LENGTH]
+        errors: dict[str, list[str]] = {}
+        if not name:
+            errors["name"] = ["Nhập tên của bạn."]
+        if not message:
+            errors["message"] = ["Nhập lời chúc."]
+        if errors:
+            raise ValidationError("Hãy ghi tên và lời chúc.", code="wish_invalid", errors=errors)
+        wish = await self._wishes.add(
+            tenant_id, name=name, message=message, status=RsvpStatus.NONE, count=1, guest_code=""
+        )
+        log.info("guest_wished", tenant_id=str(tenant_id))
+        return wish
+
+
 class ListWishes:
     def __init__(self, wishes: WishRepository) -> None:
         self._wishes = wishes
@@ -99,4 +123,4 @@ class DeleteWish:
             raise NotFoundError("Không tìm thấy lời chúc.", code="wish_not_found")
 
 
-__all__ = ["DeleteWish", "ListWishes", "Reply", "RespondToInvitation"]
+__all__ = ["DeleteWish", "LeaveWish", "ListWishes", "Reply", "RespondToInvitation"]
