@@ -216,4 +216,36 @@ TEMPLATE_BLUEPRINTS: Final[tuple[Template, ...]] = (
 #: Mẫu mặc định cho khách chung (link không mã), theo dữ liệu mẫu của thiết kế.
 DEFAULT_TEMPLATE_KEY: Final[str] = "uyenuong"
 
-__all__ = ["DEFAULT_TEMPLATE_KEY", "TEMPLATE_BLUEPRINTS"]
+#: Mẫu cho nghỉ sau đợt rà bộ mẫu: trùng khuôn với mẫu khác (chỉ đổi màu) mà không có
+#: gì đẹp hơn, hoặc hiển thị lỗi. KHÔNG xoá: seed chỉ tắt `is_active` MỘT lần (đánh dấu
+#: `retired`) — thiệp đã dùng vẫn hiển thị, đội vận hành bật lại được và không bị tắt lại.
+RETIRED_KEYS: Final[dict[str, str]] = {
+    "stlongphungdo": "Khuôn phẳng, không ảnh; bản v2/v3/v4 đẹp hơn",
+    "stlongphungxanh": "Trùng khuôn Long Phụng Đỏ, chỉ đổi màu",
+    "stlongphunglam": "Trùng khuôn Long Phụng Đỏ, chỉ đổi màu",
+    "stlongphunghuyen": "Trùng khuôn Long Phụng Đỏ, chỉ đổi màu",
+    "stminimalismxanh": "Khuôn trơn nhất dòng Minimalism",
+    "stsonglongxanh": "Trùng Song Long Đỏ, chỉ đổi màu",
+    "stsonglonglam": "Trùng Song Long Đỏ, chỉ đổi màu",
+    "stsonghyxanh": "Trùng Song Hỷ Đỏ, chỉ đổi màu",
+    "stsongphungdo": "Ảnh chữ Hỷ ở phần mở đầu bị hỏng",
+    "stsongphungxanh": "Ảnh chữ Hỷ ở phần mở đầu bị hỏng",
+    "stvuonxuanlam": "Chỉ có chữ, không hình; Vườn Xuân Xanh đẹp hơn",
+    "stvuonxuando": "Chỉ có chữ, không hình; Vườn Xuân Xanh đẹp hơn",
+    "sthoangkimxanh": "Trùng Hoàng Kim Đỏ, chỉ đổi màu",
+    "sthoangkimlam": "Trùng Hoàng Kim Đỏ, chỉ đổi màu",
+    "sthoatinhdo": "Ảnh cưới trong phần mở đầu bị hỏng",
+    "sthoahuongduong": "Phần mở đầu gần như trống, chỉ một nhành hoa nhỏ",
+    "stnhatbinhdo": "Bìa in sẵn lời mời người khác; chữ đầu trang bị cắt",
+    "stcobado": "Tiêu đề đầu trang chồng lên nhau",
+    "tgreu": "Trùng khuôn Thanh Nhã, chỉ đổi màu",
+    "tgnau": "Trùng khuôn Thanh Nhã, chỉ đổi màu",
+    "tgtim": "Trùng khuôn Thanh Nhã, chỉ đổi màu",
+    "ncdat": "Trùng khuôn Nét Chữ, chỉ đổi màu",
+    "ncbien": "Trùng khuôn Nét Chữ, chỉ đổi màu",
+    "ncreu": "Trùng khuôn Nét Chữ, chỉ đổi màu",
+    "vogue": "Trùng Tạp Chí, chỉ đổi màu nền",
+    "maycattuong": "Trùng Hồng Phúc, chỉ đổi màu nền",
+}
+
+__all__ = ["DEFAULT_TEMPLATE_KEY", "RETIRED_KEYS", "TEMPLATE_BLUEPRINTS"]

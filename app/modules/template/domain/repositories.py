@@ -29,6 +29,10 @@ class TemplateRepository(Protocol):
         """Gắn hạng cho mẫu cũ chưa có trường hạng. Trả số mẫu vừa gắn."""
         ...
 
+    async def retire(self, keys: frozenset[str]) -> int:
+        """Tắt MỘT lần các mẫu cho nghỉ; mẫu đã xử lý thì bỏ qua. Trả số mẫu vừa tắt."""
+        ...
+
     async def tiers(self) -> dict[str, Tier]: ...
 
     async def update_flags(

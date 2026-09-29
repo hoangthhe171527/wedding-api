@@ -10,7 +10,7 @@ from httpx import AsyncClient
 from tests.conftest import API, Session
 from tests.modules.test_production_guards import _content
 
-PAID_TEMPLATE = "stsonghyxanh"  # mẫu Story, hạng Gói Hỷ
+PAID_TEMPLATE = "stsonghydo"  # mẫu Story, hạng Gói Hỷ
 
 
 async def _setup(client: AsyncClient, session: Session) -> dict[str, Any]:
