@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
+from dataclasses import dataclass
 from typing import Protocol
 from uuid import UUID
 
@@ -93,6 +94,16 @@ class WishRepository(Protocol):
     async def soft_delete(self, tenant_id: UUID, wish_id: UUID, *, actor_id: UUID) -> bool: ...
 
 
+@dataclass(frozen=True, slots=True)
+class LinkFields:
+    """Nội dung link người soạn nhập (ngoài đuôi): tên, mẫu, người được mời, lễ tiệc."""
+
+    name: str
+    template: str = ""
+    greeting: str = ""
+    events: tuple[str, ...] = ()
+
+
 class LinkSlugTakenError(Exception):
     """Đuôi link đã có trong xưởng (index duy nhất từ chối)."""
 
@@ -115,7 +126,7 @@ class InviteLinkRepository(Protocol):
         ...
 
     async def create(
-        self, tenant_id: UUID, *, slug: str, name: str, template: str, actor_id: UUID
+        self, tenant_id: UUID, *, slug: str, fields: LinkFields, actor_id: UUID
     ) -> InviteLink:
         """Raises: LinkSlugTakenError."""
         ...
@@ -126,8 +137,7 @@ class InviteLinkRepository(Protocol):
         link_id: UUID,
         *,
         slug: str,
-        name: str,
-        template: str,
+        fields: LinkFields,
         actor_id: UUID,
     ) -> InviteLink | None:
         """Raises: LinkSlugTakenError."""
@@ -144,6 +154,7 @@ __all__ = [
     "GuestCodeTakenError",
     "GuestRepository",
     "InviteLinkRepository",
+    "LinkFields",
     "LinkSlugTakenError",
     "WishRepository",
 ]

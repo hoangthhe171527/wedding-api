@@ -20,7 +20,11 @@ from app.modules.guest.domain.entities import (
     Wish,
 )
 from app.modules.guest.domain.enums import RsvpStatus, Side
-from app.modules.guest.domain.repositories import GuestCodeTakenError, LinkSlugTakenError
+from app.modules.guest.domain.repositories import (
+    GuestCodeTakenError,
+    LinkFields,
+    LinkSlugTakenError,
+)
 from app.modules.guest.infrastructure.persistence.models import (
     GuestDocument,
     InviteLinkDocument,
@@ -293,10 +297,22 @@ def _link(doc: InviteLinkDocument) -> InviteLink:
         slug=doc.slug,
         name=doc.name,
         template=doc.template,
+        greeting=doc.greeting,
+        events=tuple(doc.events),
         opens=doc.open_count,
         last_opened_at=doc.last_opened_at,
         created_at=doc.created_at,
     )
+
+
+def _link_fields(fields: LinkFields) -> dict[str, Any]:
+    return {
+        "name": fields.name.strip(),
+        "template": fields.template,
+        "greeting": fields.greeting.strip(),
+        # Giữ thứ tự người soạn chọn, bỏ trùng.
+        "events": list(dict.fromkeys(fields.events)),
+    }
 
 
 class BeanieInviteLinkRepository:
@@ -326,11 +342,9 @@ class BeanieInviteLinkRepository:
         return frozenset(map(str, raw))
 
     async def create(
-        self, tenant_id: UUID, *, slug: str, name: str, template: str, actor_id: UUID
+        self, tenant_id: UUID, *, slug: str, fields: LinkFields, actor_id: UUID
     ) -> InviteLink:
-        doc = InviteLinkDocument(
-            tenant_id=tenant_id, slug=slug, name=name.strip(), template=template
-        )
+        doc = InviteLinkDocument(tenant_id=tenant_id, slug=slug, **_link_fields(fields))
         doc.stamp_created(actor_id)
         try:
             await doc.insert()
@@ -344,14 +358,12 @@ class BeanieInviteLinkRepository:
         link_id: UUID,
         *,
         slug: str,
-        name: str,
-        template: str,
+        fields: LinkFields,
         actor_id: UUID,
     ) -> InviteLink | None:
         changes = {
             "slug": slug,
-            "name": name.strip(),
-            "template": template,
+            **_link_fields(fields),
             "updated_at": utc_now(),
             "updated_by": actor_id,
         }

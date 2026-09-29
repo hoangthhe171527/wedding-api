@@ -50,14 +50,20 @@ class GuestByCodeReader:
         self._links = BeanieInviteLinkRepository()
 
     async def by_link(self, tenant_id: UUID, slug: str) -> dict[str, Any] | None:
-        """Link đối tượng theo đuôi: chỉ đuôi và mẫu — tên link là nhãn nội bộ."""
+        """Link đối tượng theo đuôi: đuôi, mẫu, người được mời, lễ tiệc — KHÔNG trả tên
+        link (nhãn nội bộ của cặp đôi)."""
         slug = slug.strip().lower()
         if not is_valid_link_slug(slug):
             return None
         link = await self._links.find_by_slug(tenant_id, slug)
         if link is None:
             return None
-        return {"slug": link.slug, "template": link.template}
+        return {
+            "slug": link.slug,
+            "template": link.template,
+            "greeting": link.greeting,
+            "events": list(link.events),
+        }
 
     async def by_code(self, tenant_id: UUID, code: str) -> dict[str, Any] | None:
         code = code.strip().lower()

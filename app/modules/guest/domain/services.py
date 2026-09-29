@@ -59,6 +59,7 @@ def validate_draft(draft: GuestDraft, *, known_templates: frozenset[str]) -> Fie
 LINK_SLUG_MAX: Final[int] = 40
 _LINK_SLUG_RE: Final = re.compile(r"^[a-z0-9](?:[a-z0-9-]{0,38}[a-z0-9])$")
 LINK_NAME_MAX: Final[int] = 80
+LINK_GREETING_MAX: Final[int] = 120
 
 
 def _ascii(text: str) -> str:
@@ -80,7 +81,12 @@ def is_valid_link_slug(slug: str) -> bool:
 
 
 def validate_link(
-    *, name: str, slug: str, template: str, known_templates: frozenset[str]
+    *,
+    name: str,
+    slug: str,
+    template: str,
+    known_templates: frozenset[str],
+    greeting: str = "",
 ) -> FieldErrors:
     """Kiểm một link đối tượng. Rỗng là hợp lệ."""
     errors: FieldErrors = {}
@@ -92,6 +98,8 @@ def validate_link(
         errors["slug"] = [
             f"Đuôi link 2-{LINK_SLUG_MAX} ký tự: chữ thường không dấu, số và gạch ngang."
         ]
+    if len(greeting.strip()) > LINK_GREETING_MAX:
+        errors["greeting"] = [f"Người được mời tối đa {LINK_GREETING_MAX} ký tự."]
     if template and template not in known_templates:
         errors["template"] = ["Mẫu thiệp không tồn tại."]
     return errors
@@ -140,6 +148,7 @@ def parse_import(text: str) -> tuple[list[GuestDraft], int]:
 
 __all__ = [
     "CODE_LENGTH",
+    "LINK_GREETING_MAX",
     "LINK_NAME_MAX",
     "LINK_SLUG_MAX",
     "FieldErrors",

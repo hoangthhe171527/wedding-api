@@ -81,6 +81,8 @@ class InviteLinkDocument(TenantScopedDocument):
     slug: str
     name: str
     template: str = ""
+    greeting: str = ""
+    events: list[str] = Field(default_factory=list)
     #: Lượt mở. Không đụng `updated_at`: mở thiệp không phải sửa link.
     open_count: int = 0
     last_opened_at: datetime | None = None

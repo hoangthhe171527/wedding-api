@@ -166,3 +166,46 @@ async def test_mau_cua_link_tinh_vao_goi(client: AsyncClient, customer: Session)
         item["subject"] for item in check["data"]["violations"] if item["code"] == "template"
     }
     assert "phaohoa" in subjects
+
+
+async def test_link_moi_rieng_va_chi_hien_tiec_duoc_moi(
+    client: AsyncClient, customer: Session
+) -> None:
+    await _publish(client, customer)
+    wedding = (await client.get(f"{API}/wedding", headers=customer.headers)).json()["data"]
+    events = wedding["events"]
+    assert len(events) > 1
+    party = events[-1]["id"]
+    link = await _create(
+        client,
+        customer,
+        name="Đồng nghiệp",
+        greeting="Quý đồng nghiệp",
+        events=[party, party, "khong-co"],
+    )
+    assert link["greeting"] == "Quý đồng nghiệp"
+    assert link["events"] == [party, "khong-co"]
+
+    page = (await client.get(f"{PUBLIC}?link={link['slug']}")).json()["data"]
+    assert page["greeting"] == "Quý đồng nghiệp"
+    assert [item["id"] for item in page["wedding"]["events"]] == [party]
+    shared = (await client.get(PUBLIC)).json()["data"]
+    assert shared["greeting"] == ""
+    assert len(shared["wedding"]["events"]) == len(events)
+
+    # Lễ tiệc đã chọn bị xoá hết: thiệp vẫn hiện đủ, không bao giờ rỗng.
+    gone = await client.put(
+        f"{LINKS}/{link['id']}",
+        json={"name": "Đồng nghiệp", "events": ["khong-co"]},
+        headers=customer.headers,
+    )
+    assert gone.status_code == 200, gone.text
+    page = (await client.get(f"{PUBLIC}?link={link['slug']}")).json()["data"]
+    assert len(page["wedding"]["events"]) == len(events)
+
+
+async def test_nguoi_duoc_moi_qua_dai(client: AsyncClient, customer: Session) -> None:
+    long = await client.post(
+        LINKS, json={"name": "Nhóm", "greeting": "x" * 121}, headers=customer.headers
+    )
+    assert long.status_code == 422

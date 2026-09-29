@@ -15,7 +15,11 @@ from app.core.logging import get_logger
 from app.modules.guest.application.ports import TemplateCatalog
 from app.modules.guest.domain.entities import InviteLink
 from app.modules.guest.domain.enums import MAX_LINKS_PER_STUDIO
-from app.modules.guest.domain.repositories import InviteLinkRepository, LinkSlugTakenError
+from app.modules.guest.domain.repositories import (
+    InviteLinkRepository,
+    LinkFields,
+    LinkSlugTakenError,
+)
 from app.modules.guest.domain.services import LINK_SLUG_MAX, link_slug_from, validate_link
 
 log = get_logger(__name__)
@@ -31,6 +35,18 @@ class LinkInput:
     name: str
     slug: str = ""
     template: str = ""
+    #: Người được mời trên thiệp ("Quý đồng nghiệp"); rỗng = "Quý khách".
+    greeting: str = ""
+    #: Id lễ tiệc nhóm được mời; rỗng = mọi lễ tiệc.
+    events: tuple[str, ...] = ()
+
+    def fields(self) -> LinkFields:
+        return LinkFields(
+            name=self.name,
+            template=self.template,
+            greeting=self.greeting,
+            events=self.events,
+        )
 
 
 def link_not_found() -> NotFoundError:
@@ -46,7 +62,13 @@ def _slug_taken(slug: str) -> ConflictError:
 
 
 def _ensure_valid(data: LinkInput, slug: str, known: frozenset[str]) -> None:
-    errors = validate_link(name=data.name, slug=slug, template=data.template, known_templates=known)
+    errors = validate_link(
+        name=data.name,
+        slug=slug,
+        template=data.template,
+        greeting=data.greeting,
+        known_templates=known,
+    )
     if errors:
         first = next(iter(errors.values()))[0]
         raise ValidationError(first, errors=errors)
@@ -90,8 +112,7 @@ class CreateLink:
                 link = await self._links.create(
                     actor.tenant_id,
                     slug=slug,
-                    name=data.name,
-                    template=data.template,
+                    fields=data.fields(),
                     actor_id=actor.user_id,
                 )
             except LinkSlugTakenError:
@@ -121,8 +142,7 @@ class UpdateLink:
                 actor.tenant_id,
                 link_id,
                 slug=slug,
-                name=data.name,
-                template=data.template,
+                fields=data.fields(),
                 actor_id=actor.user_id,
             )
         except LinkSlugTakenError as exc:

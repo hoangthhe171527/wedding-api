@@ -103,6 +103,9 @@ class InviteLink:
         slug: Đuôi link sau slug thiệp — `/invite/<slug thiệp>/<slug>`.
         name: Tên để cặp đôi nhận ra ("Đồng nghiệp công ty"); không lên thiệp.
         template: Mẫu riêng; rỗng = mẫu mặc định của thiệp.
+        greeting: Người được mời, điền vào chỗ tên khách trên thiệp ("Quý đồng
+            nghiệp" -> "Trân trọng kính mời Quý đồng nghiệp"); rỗng = "Quý khách".
+        events: Id lễ tiệc nhóm này được mời; rỗng = mọi lễ tiệc.
     """
 
     id: UUID
@@ -110,6 +113,8 @@ class InviteLink:
     slug: str
     name: str
     template: str = ""
+    greeting: str = ""
+    events: tuple[str, ...] = ()
     opens: int = 0
     last_opened_at: datetime | None = None
     created_at: datetime | None = None

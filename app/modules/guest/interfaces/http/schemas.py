@@ -215,9 +215,19 @@ class LinkIn(BaseModel):
     name: Annotated[str, Field(min_length=1, max_length=80)]
     slug: Annotated[str, Field(max_length=40)] = ""
     template: TemplateKey = ""
+    #: Người được mời trên thiệp ("Quý đồng nghiệp"); rỗng = "Quý khách".
+    greeting: Annotated[str, Field(max_length=120)] = ""
+    #: Id lễ tiệc nhóm này được mời; rỗng = mọi lễ tiệc.
+    events: Annotated[list[EventId], Field(max_length=20)] = Field(default_factory=list)
 
     def to_domain(self) -> LinkInput:
-        return LinkInput(name=self.name, slug=self.slug, template=self.template)
+        return LinkInput(
+            name=self.name,
+            slug=self.slug,
+            template=self.template,
+            greeting=self.greeting,
+            events=tuple(self.events),
+        )
 
 
 class LinkOut(BaseModel):
@@ -227,6 +237,8 @@ class LinkOut(BaseModel):
     slug: str
     name: str
     template: str
+    greeting: str = ""
+    events: list[str] = []
     opens: int
     last_opened_at: datetime | None = None
     created_at: datetime | None = None
@@ -238,6 +250,8 @@ class LinkOut(BaseModel):
             slug=link.slug,
             name=link.name,
             template=link.template,
+            greeting=link.greeting,
+            events=list(link.events),
             opens=link.opens,
             last_opened_at=link.last_opened_at,
             created_at=link.created_at,

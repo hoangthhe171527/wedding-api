@@ -25,6 +25,7 @@ from app.modules.invitation.application.ports import (
 )
 from app.modules.invitation.domain.services import (
     effective_template,
+    for_audience,
     public_guest,
     public_wedding,
 )
@@ -39,6 +40,8 @@ class Invitation:
     guest: dict[str, Any] | None
     #: Đuôi link đối tượng đã nhận diện; rỗng = link chung (hoặc đuôi lạ, gói miễn phí).
     link: str
+    #: Người được mời của link đối tượng ("Quý đồng nghiệp"); rỗng = "Quý khách".
+    greeting: str
     template: str
     #: `badge`: hiện dấu "Tạo bởi Xưởng Thiệp Hỷ" (gói chưa bỏ dấu).
     branding: dict[str, Any]
@@ -96,11 +99,12 @@ class GetInvitation:
             link=audience,
         )
         return Invitation(
-            wedding=public_wedding(snapshot),
+            wedding=for_audience(public_wedding(snapshot), audience),
             photos=album["full"],
             photos_small=album["small"],
             guest=public_guest(guest),
             link=str(audience["slug"]) if audience else "",
+            greeting=str(audience.get("greeting") or "") if audience else "",
             template=template,
             branding={"badge": not plan.get("remove_badge"), "plan": plan.get("plan", "free")},
             defaults={

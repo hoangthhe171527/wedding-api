@@ -32,6 +32,8 @@ class InvitationOut(BaseModel):
     guest: dict[str, Any] | None
     #: Đuôi link đối tượng đã nhận diện; rỗng = link chung.
     link: str = ""
+    #: Người được mời của link đối tượng; rỗng = "Quý khách".
+    greeting: str = ""
     template: str
     branding: BrandingOut
     #: Câu chữ mặc định hệ thống: `{wording: {giọng: {ô: câu}}, messages: {giọng: tin}}`.
@@ -45,6 +47,7 @@ class InvitationOut(BaseModel):
             photos_small=item.photos_small,
             guest=item.guest,
             link=item.link,
+            greeting=item.greeting,
             template=item.template,
             defaults=item.defaults,
             branding=BrandingOut(
