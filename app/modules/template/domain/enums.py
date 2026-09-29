@@ -16,6 +16,8 @@ class Family(StrEnum):
     STORY_FLORAL = "story-floral"
     STORY_LUXE = "story-luxe"
     STORY_ROMANCE = "story-romance"
+    #: "Độc bản" — mẫu cao cấp xưởng tự thiết kế (web: `src/lib/story/themes/signature.ts`).
+    STORY_SIGNATURE = "story-signature"
     MOTION = "motion"
     ROYAL = "royal"
     MODERN = "modern"
@@ -88,6 +90,7 @@ TIER_LABELS: Final[dict[Tier, str]] = {
 }
 
 FAMILY_LABELS: Final[dict[Family, str]] = {
+    Family.STORY_SIGNATURE: "Độc bản",
     Family.MOTION: "Hoạt hình",
     Family.ROYAL: "Cung đình lộng lẫy",
     Family.MODERN: "Hiện đại",

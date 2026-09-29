@@ -11,7 +11,7 @@ from app.seeds.seed import SeedRefusedError, ensure_seedable, run_seed
 async def test_seed_chay_lan_hai_la_noop() -> None:
     first = await run_seed()
     assert first["noop"] is False
-    assert first["templates_created"] == 122
+    assert first["templates_created"] == 134
     second = await run_seed()
     assert second["noop"] is True
 

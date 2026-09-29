@@ -59,7 +59,7 @@ async def test_ca_hai_vai_tro_xem_duoc_bo_mau(
     for session in (admin, customer):
         response = await client.get(f"{API}/templates", headers=session.headers)
         assert response.status_code == 200
-        assert len(response.json()["data"]) == 122
+        assert len(response.json()["data"]) == 134  # 122 mẫu + 12 mẫu Độc bản
 
 
 async def test_mau_da_tat_an_voi_khach_van_hien_voi_quan_tri(

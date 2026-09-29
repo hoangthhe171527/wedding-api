@@ -156,11 +156,30 @@ _STORY_BLUEPRINTS: Final[tuple[Template, ...]] = (
     _story("sthoakhocam", "Hoa Khô", Family.STORY_FLORAL, Tone.FRIENDS),
 )
 
+#: Dòng "Độc bản": mỗi mẫu kế thừa một mẫu Story nhưng mang hoạ tiết, bảng màu, font và
+#: màn mở đầu riêng (web: `src/lib/story/themes/signature.ts` — khoá phải trùng).
+_SIGNATURE_BLUEPRINTS: Final[tuple[Template, ...]] = (
+    _story("sgsonmai", "Sơn Mài Kim Phượng", Family.STORY_SIGNATURE, Tone.FAMILY),
+    _story("sgchudau", "Gốm Lam Chu Đậu", Family.STORY_SIGNATURE, Tone.FORMAL),
+    _story("sgsenho", "Sen Hồ Tây Rạng Đông", Family.STORY_SIGNATURE, Tone.FAMILY),
+    _story("sghoian", "Đèn Hoa Phố Hội", Family.STORY_SIGNATURE, Tone.FRIENDS),
+    _story("sgluahadong", "Lụa Hà Đông Ngọc Bích", Family.STORY_SIGNATURE, Tone.FORMAL),
+    _story("sgmaivang", "Mai Vàng Sum Vầy", Family.STORY_SIGNATURE, Tone.FAMILY),
+    _story("sgtruchi", "Trúc Chỉ Mặc Hương", Family.STORY_SIGNATURE, Tone.FORMAL),
+    _story("sgnganha", "Dạ Khúc Ngân Hà", Family.STORY_SIGNATURE, Tone.FRIENDS),
+    _story("sgnhungvang", "Nhung Vang Dạ Tiệc", Family.STORY_SIGNATURE, Tone.FORMAL),
+    _story("sgdalat", "Hồng Trà Thu Đà Lạt", Family.STORY_SIGNATURE, Tone.FRIENDS),
+    _story("sgtudang", "Tử Đằng Mộng Mơ", Family.STORY_SIGNATURE, Tone.FRIENDS),
+    _story("sgbachngoc", "Bạch Ngọc Song Nhẫn", Family.STORY_SIGNATURE, Tone.FORMAL),
+)
+
 #: Mẫu dùng được ở gói Miễn phí: năm mẫu cổ điển, mở bằng phong bì hoặc cuộn thư.
 FREE_KEYS: Final[frozenset[str]] = frozenset({"songhy", "hongphuc", "ngoctrai", "maudon", "xothom"})
 
-#: Dòng cần Gói Lộng Lẫy: hoạt hình 3D (three.js) và cung đình (màn mở lộng lẫy).
-PREMIUM_FAMILIES: Final[frozenset[Family]] = frozenset({Family.MOTION, Family.ROYAL})
+#: Dòng cần Gói Lộng Lẫy: hoạt hình 3D (three.js), cung đình (màn mở lộng lẫy) và Độc bản.
+PREMIUM_FAMILIES: Final[frozenset[Family]] = frozenset(
+    {Family.MOTION, Family.ROYAL, Family.STORY_SIGNATURE}
+)
 PREMIUM_KEYS: Final[frozenset[str]] = frozenset({"phaohoa", "dasao"})
 
 
@@ -189,7 +208,8 @@ def _ordered(item: Template, sort_order: int) -> Template:
 #: Thứ tự hiển thị mặc định bước 10 để đội vận hành chèn mẫu vào giữa được. Bộ Tối giản
 #: đứng TRƯỚC (1, 2, 3...): seed chỉ tạo mẫu còn thiếu, không đổi thứ tự mẫu đã có.
 TEMPLATE_BLUEPRINTS: Final[tuple[Template, ...]] = (
-    tuple(_ordered(item, 0) for item in _STORY_BLUEPRINTS)
+    tuple(_ordered(item, 0) for item in _SIGNATURE_BLUEPRINTS)
+    + tuple(_ordered(item, 0) for item in _STORY_BLUEPRINTS)
     + tuple(_ordered(item, index + 1) for index, item in enumerate(_MODERN_BLUEPRINTS))
 ) + tuple(_ordered(item, (index + 1) * 10) for index, item in enumerate(_BLUEPRINTS))
 
