@@ -2,7 +2,7 @@
 
 | Method | Path                                          | Quyền                         |
 |--------|-----------------------------------------------|-------------------------------|
-| GET    | /api/v1/public/invitations/{slug}?g=          | công khai (giới hạn tần suất) |
+| GET    | /api/v1/public/invitations/{slug}?g=&link=    | công khai (giới hạn tần suất) |
 | POST   | /api/v1/public/invitations/{slug}/rsvp        | công khai (giới hạn tần suất) |
 | GET    | /api/v1/public/invitations/{slug}/wishes      | công khai                     |
 | POST   | /api/v1/public/invitations/{slug}/open        | công khai (giới hạn tần suất) |
@@ -54,6 +54,10 @@ async def get_invitation(
     response: Response,
     use_case: GetInvitationDep,
     g: Annotated[str | None, Query(max_length=12, description="Mã khách (phần sau dấu #).")] = None,
+    link: Annotated[
+        str | None,
+        Query(max_length=40, description="Đuôi link đối tượng (`/invite/<slug>/<đuôi>`)."),
+    ] = None,
 ) -> dict[str, Any]:
     """Đám cưới đã xuất bản + ảnh + đúng vị khách ứng với mã (nếu có)."""
     await rate_limit.guard(
@@ -66,7 +70,7 @@ async def get_invitation(
     )
     # Trang mang tên khách: không cho proxy/CDN dùng chung bản lưu giữa hai người.
     response.headers["Cache-Control"] = "private, no-store"
-    return ok(InvitationOut.of(await use_case.execute(slug, g)))
+    return ok(InvitationOut.of(await use_case.execute(slug, g, link)))
 
 
 @router.post(
@@ -94,6 +98,7 @@ async def submit_reply(
         status=payload.status,
         count=payload.count,
         message=payload.message,
+        link=payload.link,
     )
     return ok(ReplyOut.model_validate(result))
 
@@ -143,7 +148,7 @@ async def record_open(
         message="Bạn mở thiệp quá nhanh. Vui lòng thử lại sau ít phút.",
         code="invitation_rate_limited",
     )
-    await use_case.execute(slug, payload.g)
+    await use_case.execute(slug, payload.g, payload.link)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 

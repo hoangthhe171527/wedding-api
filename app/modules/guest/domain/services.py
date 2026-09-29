@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import re
 import secrets
+import unicodedata
 from typing import Final
 
 from app.modules.guest.domain.entities import GuestDraft
@@ -54,6 +55,48 @@ def validate_draft(draft: GuestDraft, *, known_templates: frozenset[str]) -> Fie
     return errors
 
 
+#: Đuôi link đối tượng: 2-40 ký tự `a-z0-9-`, không mở/đóng bằng gạch.
+LINK_SLUG_MAX: Final[int] = 40
+_LINK_SLUG_RE: Final = re.compile(r"^[a-z0-9](?:[a-z0-9-]{0,38}[a-z0-9])$")
+LINK_NAME_MAX: Final[int] = 80
+
+
+def _ascii(text: str) -> str:
+    """Bỏ dấu tiếng Việt (kể cả đ/Đ — NFD không tách được hai chữ này)."""
+    text = text.replace("đ", "d").replace("Đ", "D")
+    return "".join(
+        char for char in unicodedata.normalize("NFD", text) if unicodedata.category(char) != "Mn"
+    )
+
+
+def link_slug_from(name: str) -> str:
+    """Đuôi link gợi ý từ tên: "Đồng nghiệp công ty" -> `dong-nghiep-cong-ty`."""
+    value = re.sub(r"[^a-z0-9]+", "-", _ascii(name).lower()).strip("-")
+    return value[:LINK_SLUG_MAX].strip("-")
+
+
+def is_valid_link_slug(slug: str) -> bool:
+    return bool(_LINK_SLUG_RE.match(slug))
+
+
+def validate_link(
+    *, name: str, slug: str, template: str, known_templates: frozenset[str]
+) -> FieldErrors:
+    """Kiểm một link đối tượng. Rỗng là hợp lệ."""
+    errors: FieldErrors = {}
+    if not name.strip():
+        errors["name"] = ["Đặt tên để nhận ra link này gửi cho ai."]
+    elif len(name.strip()) > LINK_NAME_MAX:
+        errors["name"] = [f"Tên tối đa {LINK_NAME_MAX} ký tự."]
+    if not is_valid_link_slug(slug):
+        errors["slug"] = [
+            f"Đuôi link 2-{LINK_SLUG_MAX} ký tự: chữ thường không dấu, số và gạch ngang."
+        ]
+    if template and template not in known_templates:
+        errors["template"] = ["Mẫu thiệp không tồn tại."]
+    return errors
+
+
 def parse_import(text: str) -> tuple[list[GuestDraft], int]:
     """Đọc ô "Nhập nhanh" — y hệt `importGuests()` của thiết kế.
 
@@ -97,9 +140,14 @@ def parse_import(text: str) -> tuple[list[GuestDraft], int]:
 
 __all__ = [
     "CODE_LENGTH",
+    "LINK_NAME_MAX",
+    "LINK_SLUG_MAX",
     "FieldErrors",
     "generate_code",
     "is_valid_code",
+    "is_valid_link_slug",
+    "link_slug_from",
     "parse_import",
     "validate_draft",
+    "validate_link",
 ]

@@ -70,7 +70,7 @@ infrastructure → interfaces`):
 | `access`     | `roles`, `role_assignments`              |
 | `template`   | `templates` (46 mẫu, kèm hạng gói), `catalog_defaults` (mẫu theo nhóm khách + câu chữ mặc định do admin đặt) |
 | `wedding`    | `weddings` (một đám cưới mỗi xưởng)      |
-| `guest`      | `guests` (mã link riêng 6 ký tự), `guest_wishes` (phản hồi, lời chúc từ web thiệp) |
+| `guest`      | `guests` (mã link riêng 6 ký tự), `guest_wishes` (phản hồi, lời chúc từ web thiệp), `guest_links` (link theo đối tượng) |
 | `media`      | `photos` (siêu dữ liệu); byte ảnh ở kho object S3 qua `app/core/storage.py` (`photo_blobs` chỉ còn cho ảnh cũ chưa chuyển) |
 | `billing`    | `orders`, `payment_events` (gói, thanh toán, đối soát) |
 | `printing`   | `print_requests` (yêu cầu in thiệp giấy; báo giá qua Zalo) |

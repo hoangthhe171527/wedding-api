@@ -11,10 +11,21 @@ from pymongo.errors import BulkWriteError, DuplicateKeyError
 
 from app.core.base_model import utc_now
 from app.core.pages import Page, PageParams
-from app.modules.guest.domain.entities import Guest, GuestDraft, GuestOpens, GuestReply, Wish
+from app.modules.guest.domain.entities import (
+    Guest,
+    GuestDraft,
+    GuestOpens,
+    GuestReply,
+    InviteLink,
+    Wish,
+)
 from app.modules.guest.domain.enums import RsvpStatus, Side
-from app.modules.guest.domain.repositories import GuestCodeTakenError
-from app.modules.guest.infrastructure.persistence.models import GuestDocument, WishDocument
+from app.modules.guest.domain.repositories import GuestCodeTakenError, LinkSlugTakenError
+from app.modules.guest.infrastructure.persistence.models import (
+    GuestDocument,
+    InviteLinkDocument,
+    WishDocument,
+)
 
 #: Mã lỗi khoá trùng của MongoDB (index duy nhất `(tenant, code)`).
 _DUPLICATE_KEY = 11000
@@ -83,6 +94,7 @@ def _wish(doc: WishDocument) -> Wish:
         count=doc.party_size,
         guest_code=doc.guest_code,
         created_at=doc.created_at,
+        link=doc.link,
     )
 
 
@@ -241,6 +253,7 @@ class BeanieWishRepository:
         status: RsvpStatus,
         count: int,
         guest_code: str,
+        link: str = "",
     ) -> Wish:
         doc = WishDocument(
             tenant_id=tenant_id,
@@ -249,6 +262,7 @@ class BeanieWishRepository:
             status=status.value,
             party_size=count,
             guest_code=guest_code,
+            link=link,
         )
         await doc.insert()
         return _wish(doc)
@@ -272,4 +286,111 @@ class BeanieWishRepository:
         return bool(result.modified_count)
 
 
-__all__ = ["BeanieGuestRepository", "BeanieWishRepository"]
+def _link(doc: InviteLinkDocument) -> InviteLink:
+    return InviteLink(
+        id=doc.id,
+        tenant_id=doc.tenant_id,
+        slug=doc.slug,
+        name=doc.name,
+        template=doc.template,
+        opens=doc.open_count,
+        last_opened_at=doc.last_opened_at,
+        created_at=doc.created_at,
+    )
+
+
+class BeanieInviteLinkRepository:
+    """`InviteLinkRepository` trên Mongo."""
+
+    async def list_all(self, tenant_id: UUID) -> list[InviteLink]:
+        docs = await InviteLinkDocument.scoped(tenant_id).sort("+created_at").to_list()
+        return [_link(doc) for doc in docs]
+
+    async def get(self, tenant_id: UUID, link_id: UUID) -> InviteLink | None:
+        doc = await InviteLinkDocument.get_scoped(tenant_id, link_id)
+        return _link(doc) if doc else None
+
+    async def find_by_slug(self, tenant_id: UUID, slug: str) -> InviteLink | None:
+        doc = await InviteLinkDocument.scoped(
+            tenant_id, InviteLinkDocument.slug == slug
+        ).first_or_none()
+        return _link(doc) if doc else None
+
+    async def count(self, tenant_id: UUID) -> int:
+        return int(await InviteLinkDocument.scoped(tenant_id).count())
+
+    async def templates(self, tenant_id: UUID) -> frozenset[str]:
+        raw = await InviteLinkDocument.get_motor_collection().distinct(
+            "template", {"tenant_id": tenant_id, "deleted_at": None, "template": {"$ne": ""}}
+        )
+        return frozenset(map(str, raw))
+
+    async def create(
+        self, tenant_id: UUID, *, slug: str, name: str, template: str, actor_id: UUID
+    ) -> InviteLink:
+        doc = InviteLinkDocument(
+            tenant_id=tenant_id, slug=slug, name=name.strip(), template=template
+        )
+        doc.stamp_created(actor_id)
+        try:
+            await doc.insert()
+        except DuplicateKeyError as exc:
+            raise LinkSlugTakenError from exc
+        return _link(doc)
+
+    async def update(
+        self,
+        tenant_id: UUID,
+        link_id: UUID,
+        *,
+        slug: str,
+        name: str,
+        template: str,
+        actor_id: UUID,
+    ) -> InviteLink | None:
+        changes = {
+            "slug": slug,
+            "name": name.strip(),
+            "template": template,
+            "updated_at": utc_now(),
+            "updated_by": actor_id,
+        }
+        try:
+            raw = await InviteLinkDocument.get_motor_collection().find_one_and_update(
+                {"_id": link_id, "tenant_id": tenant_id, "deleted_at": None},
+                {"$set": changes},
+                return_document=ReturnDocument.AFTER,
+            )
+        except DuplicateKeyError as exc:
+            raise LinkSlugTakenError from exc
+        return _link(InviteLinkDocument.model_validate(raw)) if raw else None
+
+    async def soft_delete(self, tenant_id: UUID, link_id: UUID, *, actor_id: UUID) -> bool:
+        doc = await InviteLinkDocument.get_scoped(tenant_id, link_id)
+        if doc is None:
+            return False
+        now = utc_now()
+        # Đổi đuôi sang `<slug>~<id>` (ký tự `~` không bao giờ có trong đuôi hợp lệ):
+        # link đã gửi ngừng nhận diện, và cặp đôi tạo lại được link cùng đuôi.
+        result = await InviteLinkDocument.get_motor_collection().update_one(
+            {"_id": link_id, "tenant_id": tenant_id, "deleted_at": None},
+            {
+                "$set": {
+                    "slug": f"{doc.slug}~{link_id.hex}",
+                    "deleted_at": now,
+                    "deleted_by": actor_id,
+                    "updated_at": now,
+                }
+            },
+        )
+        return bool(result.modified_count)
+
+    async def record_open(self, tenant_id: UUID, slug: str) -> bool:
+        result = await InviteLinkDocument.get_motor_collection().update_one(
+            {"tenant_id": tenant_id, "slug": slug, "deleted_at": None},
+            {"$inc": {"open_count": 1}, "$set": {"last_opened_at": utc_now()}},
+        )
+        return bool(result.modified_count)
+
+
+__all__ = ["BeanieGuestRepository", "BeanieInviteLinkRepository", "BeanieWishRepository"]

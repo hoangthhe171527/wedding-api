@@ -1,6 +1,6 @@
-"""Module `guest` — khách mời, mã link riêng, trạng thái gửi thiệp và phản hồi.
+"""Module `guest` — khách mời, link riêng, link theo đối tượng, gửi thiệp và phản hồi.
 
-Sở hữu `guests`.
+Sở hữu `guests`, `guest_wishes`, `guest_links`.
 """
 
 from app.modules.guest.infrastructure.external.bridges import (

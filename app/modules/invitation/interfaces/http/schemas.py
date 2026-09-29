@@ -30,6 +30,8 @@ class InvitationOut(BaseModel):
     #: Bản nhỏ cùng thứ tự với `photos` — ghép thành `srcset`.
     photos_small: list[str] = []
     guest: dict[str, Any] | None
+    #: Đuôi link đối tượng đã nhận diện; rỗng = link chung.
+    link: str = ""
     template: str
     branding: BrandingOut
     #: Câu chữ mặc định hệ thống: `{wording: {giọng: {ô: câu}}, messages: {giọng: tin}}`.
@@ -42,6 +44,7 @@ class InvitationOut(BaseModel):
             photos=item.photos,
             photos_small=item.photos_small,
             guest=item.guest,
+            link=item.link,
             template=item.template,
             defaults=item.defaults,
             branding=BrandingOut(
@@ -54,6 +57,8 @@ class ReplyIn(BaseModel):
     """Phản hồi từ web thiệp. Mở link chung thì bắt buộc ghi `name`."""
 
     g: Annotated[str, Field(max_length=12)] = ""
+    #: Đuôi link đối tượng khách đang mở — để cặp đôi biết phản hồi đến từ nhóm nào.
+    link: Annotated[str, Field(max_length=40)] = ""
     name: Annotated[str, Field(max_length=160)] = ""
     status: Literal["yes", "maybe", "no"]
     count: Annotated[int, Field(ge=1, le=20)] = 1
@@ -68,9 +73,10 @@ class WishIn(BaseModel):
 
 
 class OpenIn(BaseModel):
-    """Khách mở link riêng: `g` là mã sau dấu #."""
+    """Khách mở link riêng (`g` = mã sau dấu #) hoặc link đối tượng (`link` = đuôi link)."""
 
-    g: Annotated[str, Field(min_length=1, max_length=12)]
+    g: Annotated[str, Field(max_length=12)] = ""
+    link: Annotated[str, Field(max_length=40)] = ""
 
 
 class ReplyOut(BaseModel):

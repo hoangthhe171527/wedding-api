@@ -42,14 +42,22 @@ def effective_template(
     guest: dict[str, Any] | None,
     group_templates: dict[str, str],
     default_template: str,
+    link: dict[str, Any] | None = None,
 ) -> str:
-    """Mẫu riêng của khách -> mẫu của nhóm -> mẫu mặc định -> mẫu lùi."""
+    """Mẫu riêng của khách -> mẫu của nhóm -> mẫu của link đối tượng -> mẫu mặc định
+    -> mẫu lùi.
+
+    Khách có link riêng mở qua link đối tượng (hiếm: `/<đuôi>#<mã>`) vẫn thấy mẫu
+    dành riêng cho mình — link riêng nhắm đúng một người nên được ưu tiên.
+    """
     if guest is not None:
         if guest.get("template"):
             return str(guest["template"])
         by_group = group_templates.get(str(guest.get("group", "")))
         if by_group:
             return by_group
+    if link is not None and link.get("template"):
+        return str(link["template"])
     return default_template or FALLBACK_TEMPLATE
 
 

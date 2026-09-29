@@ -25,13 +25,17 @@ log = get_logger(__name__)
 
 @dataclass(frozen=True, slots=True)
 class Reply:
-    """Một phản hồi từ web thiệp. `code` rỗng = khách mở link chung."""
+    """Một phản hồi từ web thiệp. `code` rỗng = khách mở link chung.
+
+    `link`: đuôi link đối tượng khách mở (đã kiểm có thật), rỗng nếu không có.
+    """
 
     code: str
     name: str
     status: RsvpStatus
     count: int
     message: str
+    link: str = ""
 
 
 def _guest_line(title: str, name: str, plus: str) -> str:
@@ -52,6 +56,7 @@ class RespondToInvitation:
         code = reply.code.strip().lower()
         name = reply.name.strip()
 
+        link = ""
         guest = None
         if code and is_valid_code(code):
             guest = await self._guests.record_reply(
@@ -63,6 +68,7 @@ class RespondToInvitation:
             code = guest.code
         else:
             code = ""
+            link = reply.link
             if not name:
                 raise ValidationError(
                     "Hãy ghi tên để cô dâu chú rể biết bạn là ai.",
@@ -76,6 +82,7 @@ class RespondToInvitation:
             status=reply.status,
             count=count,
             guest_code=code,
+            link=link,
         )
         log.info("guest_replied", tenant_id=str(tenant_id), known=bool(code), status=reply.status)
         return wish

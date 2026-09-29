@@ -1,7 +1,7 @@
 """Cầu nối `guest` công bố cho module khác.
 
 * `wedding` cần nạp khách mẫu (`GuestSeeder`) và đếm khách (`GuestCounter`).
-* `invitation` cần tra một khách theo mã (`GuestByCodeReader`).
+* `invitation` cần tra một khách theo mã, một link đối tượng theo đuôi (`GuestByCodeReader`).
 
 Bên dùng khai cổng; `guest` — chủ sở hữu dữ liệu — viết bản hiện thực ở đây và
 chỉ trả dữ liệu thuần (không trả thực thể của mình, §1.2).
@@ -20,9 +20,10 @@ from app.modules.guest.application.use_cases import (
     SeedSampleGuests,
 )
 from app.modules.guest.domain.enums import RsvpStatus
-from app.modules.guest.domain.services import is_valid_code
+from app.modules.guest.domain.services import is_valid_code, is_valid_link_slug
 from app.modules.guest.infrastructure.persistence.repositories import (
     BeanieGuestRepository,
+    BeanieInviteLinkRepository,
     BeanieWishRepository,
 )
 
@@ -46,6 +47,17 @@ class GuestByCodeReader:
 
     def __init__(self) -> None:
         self._guests = BeanieGuestRepository()
+        self._links = BeanieInviteLinkRepository()
+
+    async def by_link(self, tenant_id: UUID, slug: str) -> dict[str, Any] | None:
+        """Link đối tượng theo đuôi: chỉ đuôi và mẫu — tên link là nhãn nội bộ."""
+        slug = slug.strip().lower()
+        if not is_valid_link_slug(slug):
+            return None
+        link = await self._links.find_by_slug(tenant_id, slug)
+        if link is None:
+            return None
+        return {"slug": link.slug, "template": link.template}
 
     async def by_code(self, tenant_id: UUID, code: str) -> dict[str, Any] | None:
         code = code.strip().lower()
@@ -73,9 +85,12 @@ class GuestUsageReader:
 
     def __init__(self) -> None:
         self._guests = BeanieGuestRepository()
+        self._links = BeanieInviteLinkRepository()
 
     async def usage(self, tenant_id: UUID) -> dict[str, Any]:
+        """Mẫu đang dùng gồm cả mẫu gán cho link đối tượng — người mở link thấy chúng."""
         count, templates, groups = await self._guests.usage(tenant_id)
+        templates |= await self._links.templates(tenant_id)
         return {"count": count, "templates": sorted(templates), "groups": sorted(groups)}
 
 
@@ -89,14 +104,31 @@ class GuestResponder:
     def __init__(self) -> None:
         self._wishes = BeanieWishRepository()
         self._guests = BeanieGuestRepository()
+        self._links = BeanieInviteLinkRepository()
         self._respond = RespondToInvitation(self._guests, self._wishes)
 
     async def respond(
-        self, tenant_id: UUID, *, code: str, name: str, status: str, count: int, message: str
+        self,
+        tenant_id: UUID,
+        *,
+        code: str,
+        name: str,
+        status: str,
+        count: int,
+        message: str,
+        link: str = "",
     ) -> dict[str, Any]:
+        known = await self._known_link(tenant_id, link)
         wish = await self._respond.execute(
             tenant_id,
-            Reply(code=code, name=name, status=RsvpStatus(status), count=count, message=message),
+            Reply(
+                code=code,
+                name=name,
+                status=RsvpStatus(status),
+                count=count,
+                message=message,
+                link=known,
+            ),
         )
         return {"name": wish.name, "status": wish.status.value, "count": wish.count}
 
@@ -109,6 +141,17 @@ class GuestResponder:
         if not is_valid_code(code):
             return False
         return await self._guests.record_open(tenant_id, code)
+
+    async def record_link_open(self, tenant_id: UUID, slug: str) -> bool:
+        known = await self._known_link(tenant_id, slug)
+        return await self._links.record_open(tenant_id, known) if known else False
+
+    async def _known_link(self, tenant_id: UUID, slug: str) -> str:
+        """Đuôi link có thật trong xưởng, hoặc rỗng — không ghi đuôi bịa vào sổ phản hồi."""
+        slug = slug.strip().lower()
+        if not slug or not is_valid_link_slug(slug):
+            return ""
+        return slug if await self._links.find_by_slug(tenant_id, slug) else ""
 
     async def public_wishes(self, tenant_id: UUID, limit: int) -> list[dict[str, Any]]:
         wishes = await self._wishes.list_recent(tenant_id, limit=limit, with_message=True)

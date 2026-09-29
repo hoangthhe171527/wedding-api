@@ -9,6 +9,10 @@
 | DELETE | /api/v1/guests/{id}       | xoá mềm                              |
 | GET    | /api/v1/guests/wishes     | sổ phản hồi, lời chúc từ web thiệp   |
 | DELETE | /api/v1/guests/wishes/{id}| gỡ một lời chúc                      |
+| GET    | /api/v1/guests/links       | link theo đối tượng                  |
+| POST   | /api/v1/guests/links       | tạo link, đuôi rỗng = tự sinh        |
+| PUT    | /api/v1/guests/links/{id}  | sửa tên, đuôi, mẫu                   |
+| DELETE | /api/v1/guests/links/{id}  | xoá mềm, link đã gửi mở như chung    |
 """
 
 from __future__ import annotations
@@ -33,12 +37,16 @@ from app.core.responses import (
 )
 from app.modules.guest.infrastructure.providers import (
     CreateGuestDep,
+    CreateLinkDep,
     DeleteGuestDep,
+    DeleteLinkDep,
     DeleteWishDep,
     ImportGuestsDep,
     ListGuestsDep,
+    ListLinksDep,
     ListWishesDep,
     UpdateGuestDep,
+    UpdateLinkDep,
 )
 from app.modules.guest.interfaces.http.schemas import (
     GuestIn,
@@ -46,6 +54,8 @@ from app.modules.guest.interfaces.http.schemas import (
     GuestPatchIn,
     ImportIn,
     ImportOut,
+    LinkIn,
+    LinkOut,
     WishOut,
 )
 
@@ -80,6 +90,39 @@ async def delete_wish(
 ) -> dict[str, Any]:
     await use_case.execute(actor, wish_id)
     return ok_message("Đã gỡ lời chúc.")
+
+
+@router.get("/links", response_model=ResponseEnvelope[list[LinkOut]], summary="Link theo đối tượng")
+async def list_links(actor: GuestManager, use_case: ListLinksDep) -> dict[str, Any]:
+    """Mỗi link một nhóm người, một mẫu thiệp — gửi vào nhóm Zalo mà không cần nhập khách."""
+    return ok_list([LinkOut.of(item) for item in await use_case.execute(actor)])
+
+
+@router.post(
+    "/links",
+    response_model=ResponseEnvelope[LinkOut],
+    status_code=status.HTTP_201_CREATED,
+    summary="Tạo link theo đối tượng",
+)
+async def create_link(
+    payload: LinkIn, actor: GuestManager, use_case: CreateLinkDep
+) -> dict[str, Any]:
+    return ok(LinkOut.of(await use_case.execute(actor, payload.to_domain())))
+
+
+@router.put("/links/{link_id}", response_model=ResponseEnvelope[LinkOut], summary="Sửa link")
+async def update_link(
+    link_id: UUID, payload: LinkIn, actor: GuestManager, use_case: UpdateLinkDep
+) -> dict[str, Any]:
+    return ok(LinkOut.of(await use_case.execute(actor, link_id, payload.to_domain())))
+
+
+@router.delete("/links/{link_id}", response_model=ResponseEnvelope[MessageOut], summary="Xoá link")
+async def delete_link(
+    link_id: UUID, actor: GuestManager, use_case: DeleteLinkDep
+) -> dict[str, Any]:
+    await use_case.execute(actor, link_id)
+    return ok_message("Đã xoá link.")
 
 
 @router.post(
