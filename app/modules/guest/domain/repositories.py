@@ -3,11 +3,12 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
+from dataclasses import dataclass
 from typing import Protocol
 from uuid import UUID
 
 from app.core.pages import Page, PageParams
-from app.modules.guest.domain.entities import Guest, GuestDraft, Wish
+from app.modules.guest.domain.entities import Guest, GuestDraft, InviteLink, Wish
 from app.modules.guest.domain.enums import RsvpStatus
 
 
@@ -83,6 +84,7 @@ class WishRepository(Protocol):
         status: RsvpStatus,
         count: int,
         guest_code: str,
+        link: str = "",
     ) -> Wish: ...
 
     async def list_recent(self, tenant_id: UUID, *, limit: int, with_message: bool) -> list[Wish]:
@@ -92,4 +94,67 @@ class WishRepository(Protocol):
     async def soft_delete(self, tenant_id: UUID, wish_id: UUID, *, actor_id: UUID) -> bool: ...
 
 
-__all__ = ["GuestCodeTakenError", "GuestRepository", "WishRepository"]
+@dataclass(frozen=True, slots=True)
+class LinkFields:
+    """Nội dung link người soạn nhập (ngoài đuôi): tên, mẫu, người được mời, lễ tiệc."""
+
+    name: str
+    template: str = ""
+    greeting: str = ""
+    events: tuple[str, ...] = ()
+
+
+class LinkSlugTakenError(Exception):
+    """Đuôi link đã có trong xưởng (index duy nhất từ chối)."""
+
+
+class InviteLinkRepository(Protocol):
+    """Truy cập collection `guest_links`."""
+
+    async def list_all(self, tenant_id: UUID) -> list[InviteLink]:
+        """Link của một xưởng theo thứ tự tạo."""
+        ...
+
+    async def get(self, tenant_id: UUID, link_id: UUID) -> InviteLink | None: ...
+
+    async def find_by_slug(self, tenant_id: UUID, slug: str) -> InviteLink | None: ...
+
+    async def count(self, tenant_id: UUID) -> int: ...
+
+    async def templates(self, tenant_id: UUID) -> frozenset[str]:
+        """Mẫu riêng các link đang gán — tính vào mẫu đang dùng khi xét gói."""
+        ...
+
+    async def create(
+        self, tenant_id: UUID, *, slug: str, fields: LinkFields, actor_id: UUID
+    ) -> InviteLink:
+        """Raises: LinkSlugTakenError."""
+        ...
+
+    async def update(
+        self,
+        tenant_id: UUID,
+        link_id: UUID,
+        *,
+        slug: str,
+        fields: LinkFields,
+        actor_id: UUID,
+    ) -> InviteLink | None:
+        """Raises: LinkSlugTakenError."""
+        ...
+
+    async def soft_delete(self, tenant_id: UUID, link_id: UUID, *, actor_id: UUID) -> bool:
+        """Xoá mềm VÀ nhả đuôi link để tạo lại được link cùng tên."""
+        ...
+
+    async def record_open(self, tenant_id: UUID, slug: str) -> bool: ...
+
+
+__all__ = [
+    "GuestCodeTakenError",
+    "GuestRepository",
+    "InviteLinkRepository",
+    "LinkFields",
+    "LinkSlugTakenError",
+    "WishRepository",
+]

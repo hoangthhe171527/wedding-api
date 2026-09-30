@@ -25,6 +25,7 @@ from app.modules.invitation.application.ports import (
 )
 from app.modules.invitation.domain.services import (
     effective_template,
+    for_audience,
     public_guest,
     public_wedding,
 )
@@ -37,6 +38,10 @@ class Invitation:
     #: Bản nhỏ cùng thứ tự với `photos` (điện thoại chọn qua `srcset`).
     photos_small: list[str]
     guest: dict[str, Any] | None
+    #: Đuôi link đối tượng đã nhận diện; rỗng = link chung (hoặc đuôi lạ, gói miễn phí).
+    link: str
+    #: Người được mời của link đối tượng ("Quý đồng nghiệp"); rỗng = "Quý khách".
+    greeting: str
     template: str
     #: `badge`: hiện dấu "Tạo bởi Xưởng Thiệp Hỷ" (gói chưa bỏ dấu).
     branding: dict[str, Any]
@@ -68,8 +73,11 @@ class GetInvitation:
         self._entitlements = entitlements
         self._wording = wording
 
-    async def execute(self, slug: str, code: str | None) -> Invitation:
-        """Raises: NotFoundError nếu slug không tồn tại hoặc chưa xuất bản."""
+    async def execute(self, slug: str, code: str | None, link: str | None = None) -> Invitation:
+        """`link` là đuôi link đối tượng (`/invite/<slug>/<đuôi>`); đuôi lạ mở như link chung.
+
+        Raises: NotFoundError nếu slug không tồn tại hoặc chưa xuất bản.
+        """
         found = await self._weddings.by_slug(slug)
         if found is None:
             raise invitation_not_found()
@@ -80,19 +88,23 @@ class GetInvitation:
             self._wording.defaults(),
             self._photos.album(tenant_id),
         )
-        # Gói chưa có link riêng từng khách: mọi link mở như link chung.
-        use_code = bool(code) and bool(plan.get("per_guest_links"))
-        guest = await self._guests.by_code(tenant_id, code) if code and use_code else None
+        # Gói chưa có link riêng từng khách: mọi link (kể cả link đối tượng) mở như link chung.
+        personal = bool(plan.get("per_guest_links"))
+        guest = await self._guests.by_code(tenant_id, code) if code and personal else None
+        audience = await self._guests.by_link(tenant_id, link) if link and personal else None
         template = effective_template(
             guest=guest,
             group_templates=dict(snapshot.get("group_templates") or {}),
             default_template=str(snapshot.get("default_template") or ""),
+            link=audience,
         )
         return Invitation(
-            wedding=public_wedding(snapshot),
+            wedding=for_audience(public_wedding(snapshot), audience),
             photos=album["full"],
             photos_small=album["small"],
             guest=public_guest(guest),
+            link=str(audience["slug"]) if audience else "",
+            greeting=str(audience.get("greeting") or "") if audience else "",
             template=template,
             branding={"badge": not plan.get("remove_badge"), "plan": plan.get("plan", "free")},
             defaults={

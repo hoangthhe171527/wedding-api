@@ -78,9 +78,9 @@
     "events",
     "countdown",
     "gallery",
+    "gift",
     "rsvp",
-    "wishes",
-    "gift"
+    "wishes"
   ],
   "wording_keys": [
     "announce",

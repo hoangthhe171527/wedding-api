@@ -17,9 +17,13 @@ class PublishedWeddings(Protocol):
 
 
 class GuestsByCode(Protocol):
-    """Một khách theo mã trong một xưởng (module `guest`)."""
+    """Một khách theo mã, một link đối tượng theo đuôi, trong một xưởng (module `guest`)."""
 
     async def by_code(self, tenant_id: UUID, code: str) -> dict[str, Any] | None: ...
+
+    async def by_link(self, tenant_id: UUID, slug: str) -> dict[str, Any] | None:
+        """`{"slug", "template"}` hoặc None nếu đuôi không có thật."""
+        ...
 
 
 class WordingDefaults(Protocol):
@@ -40,12 +44,22 @@ class GuestReplies(Protocol):
     """Nhận phản hồi, đọc lời chúc công khai (module `guest`)."""
 
     async def respond(
-        self, tenant_id: UUID, *, code: str, name: str, status: str, count: int, message: str
+        self,
+        tenant_id: UUID,
+        *,
+        code: str,
+        name: str,
+        status: str,
+        count: int,
+        message: str,
+        link: str = "",
     ) -> dict[str, Any]: ...
 
     async def public_wishes(self, tenant_id: UUID, limit: int) -> list[dict[str, Any]]: ...
 
     async def record_open(self, tenant_id: UUID, code: str) -> bool: ...
+
+    async def record_link_open(self, tenant_id: UUID, slug: str) -> bool: ...
 
     async def wish(self, tenant_id: UUID, *, name: str, message: str) -> dict[str, Any]: ...
 

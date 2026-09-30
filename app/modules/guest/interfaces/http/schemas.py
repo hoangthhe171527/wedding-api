@@ -8,8 +8,8 @@ from uuid import UUID
 
 from pydantic import BaseModel, Field
 
-from app.modules.guest.application.use_cases import GuestPatch, ImportResult
-from app.modules.guest.domain.entities import Guest, GuestDraft, Wish
+from app.modules.guest.application.use_cases import GuestPatch, ImportResult, LinkInput
+from app.modules.guest.domain.entities import Guest, GuestDraft, InviteLink, Wish
 from app.modules.guest.domain.enums import (
     DEFAULT_GROUP,
     MAX_PARTY_SIZE,
@@ -182,6 +182,8 @@ class WishOut(BaseModel):
     status: StatusOut
     count: int
     guest_code: str
+    #: Đuôi link đối tượng gửi phản hồi; rỗng = link chung hoặc link riêng.
+    link: str = ""
     created_at: datetime
 
     @classmethod
@@ -193,6 +195,7 @@ class WishOut(BaseModel):
             status=StatusOut(slug=wish.status.value, label=RSVP_LABELS[wish.status]),
             count=wish.count,
             guest_code=wish.guest_code,
+            link=wish.link,
             created_at=wish.created_at,
         )
 
@@ -206,4 +209,62 @@ class ImportOut(BaseModel):
         return cls(created=[GuestOut.of(item) for item in result.created], skipped=result.skipped)
 
 
-__all__ = ["GuestIn", "GuestOut", "GuestPatchIn", "ImportIn", "ImportOut", "WishOut"]
+class LinkIn(BaseModel):
+    """Thân `POST /guests/links` và `PUT /guests/links/{id}`. `slug` rỗng = tự sinh từ tên."""
+
+    name: Annotated[str, Field(min_length=1, max_length=80)]
+    slug: Annotated[str, Field(max_length=40)] = ""
+    template: TemplateKey = ""
+    #: Người được mời trên thiệp ("Quý đồng nghiệp"); rỗng = "Quý khách".
+    greeting: Annotated[str, Field(max_length=120)] = ""
+    #: Id lễ tiệc nhóm này được mời; rỗng = mọi lễ tiệc.
+    events: Annotated[list[EventId], Field(max_length=20)] = Field(default_factory=list)
+
+    def to_domain(self) -> LinkInput:
+        return LinkInput(
+            name=self.name,
+            slug=self.slug,
+            template=self.template,
+            greeting=self.greeting,
+            events=tuple(self.events),
+        )
+
+
+class LinkOut(BaseModel):
+    """Một link theo đối tượng. Link đầy đủ = `site_url` + `/` + `slug`."""
+
+    id: UUID
+    slug: str
+    name: str
+    template: str
+    greeting: str = ""
+    events: list[str] = []
+    opens: int
+    last_opened_at: datetime | None = None
+    created_at: datetime | None = None
+
+    @classmethod
+    def of(cls, link: InviteLink) -> LinkOut:
+        return cls(
+            id=link.id,
+            slug=link.slug,
+            name=link.name,
+            template=link.template,
+            greeting=link.greeting,
+            events=list(link.events),
+            opens=link.opens,
+            last_opened_at=link.last_opened_at,
+            created_at=link.created_at,
+        )
+
+
+__all__ = [
+    "GuestIn",
+    "GuestOut",
+    "GuestPatchIn",
+    "ImportIn",
+    "ImportOut",
+    "LinkIn",
+    "LinkOut",
+    "WishOut",
+]

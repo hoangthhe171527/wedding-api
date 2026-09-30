@@ -124,9 +124,9 @@ SITE_SECTIONS: Final[tuple[str, ...]] = (
     "events",
     "countdown",
     "gallery",
+    "gift",  # phong bì mừng cưới ngay sau album
     "rsvp",
     "wishes",
-    "gift",
 )
 
 __all__ = [

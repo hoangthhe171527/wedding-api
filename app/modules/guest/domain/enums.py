@@ -48,11 +48,14 @@ MAX_GUESTS_PER_STUDIO: Final[int] = 2000
 MAX_REPLY_PARTY: Final[int] = 20
 MAX_WISH_LENGTH: Final[int] = 500
 MAX_PARTY_SIZE: Final[int] = 50
+#: Link theo đối tượng mỗi xưởng — đủ cho mọi nhóm người một đám cưới có.
+MAX_LINKS_PER_STUDIO: Final[int] = 30
 
 __all__ = [
     "DEFAULT_GROUP",
     "GUEST_GROUPS",
     "MAX_GUESTS_PER_STUDIO",
+    "MAX_LINKS_PER_STUDIO",
     "MAX_PARTY_SIZE",
     "MAX_REPLY_PARTY",
     "MAX_WISH_LENGTH",

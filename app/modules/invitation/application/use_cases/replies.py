@@ -28,7 +28,15 @@ class SubmitReply:
         self._entitlements = entitlements
 
     async def execute(
-        self, slug: str, *, code: str, name: str, status: str, count: int, message: str
+        self,
+        slug: str,
+        *,
+        code: str,
+        name: str,
+        status: str,
+        count: int,
+        message: str,
+        link: str = "",
     ) -> dict[str, Any]:
         """Raises: NotFoundError (thiệp chưa mở), ValidationError (thiếu tên...)."""
         found = await self._weddings.by_slug(slug)
@@ -43,6 +51,7 @@ class SubmitReply:
             status=status,
             count=count,
             message=message,
+            link=link if plan.get("per_guest_links") else "",
         )
 
 
@@ -74,7 +83,7 @@ class ListPublicWishes:
 
 
 class RecordOpen:
-    """Khách mở link riêng — để cặp đôi biết ai đã xem thiệp.
+    """Khách mở link riêng (hoặc link đối tượng) — để cặp đôi biết ai đã xem thiệp.
 
     Chỉ ghi khi gói có link riêng từng khách (gói miễn phí không nhận diện khách).
     Mã sai / khách đã xoá thì lặng lẽ bỏ qua: không cho dò mã qua endpoint này.
@@ -87,14 +96,18 @@ class RecordOpen:
         self._replies = replies
         self._entitlements = entitlements
 
-    async def execute(self, slug: str, code: str) -> None:
+    async def execute(self, slug: str, code: str, link: str = "") -> None:
         found = await self._weddings.by_slug(slug)
         if found is None:
             raise invitation_not_found()
         tenant_id, _ = found
         plan = await self._entitlements.plan_for(tenant_id)
-        if code and plan.get("per_guest_links"):
+        if not plan.get("per_guest_links"):
+            return
+        if code:
             await self._replies.record_open(tenant_id, code)
+        elif link:
+            await self._replies.record_link_open(tenant_id, link)
 
 
 __all__ = ["ListPublicWishes", "RecordOpen", "SubmitReply", "SubmitWish"]

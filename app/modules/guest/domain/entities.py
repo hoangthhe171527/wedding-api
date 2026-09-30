@@ -87,6 +87,37 @@ class Wish:
     count: int
     guest_code: str
     created_at: datetime
+    #: Đuôi link đối tượng phản hồi được gửi từ đó; rỗng = link chung hoặc link riêng.
+    link: str = ""
 
 
-__all__ = ["Guest", "GuestDraft", "GuestReply", "Wish"]
+@dataclass(frozen=True, slots=True)
+class InviteLink:
+    """Link theo đối tượng: MỘT link gửi cho cả một nhóm người (nhóm Zalo công ty,
+    lớp đại học...) — ai mở cũng thấy đúng mẫu thiệp dành cho nhóm đó.
+
+    Khác link riêng (`#mã`, một người, mở ra đúng tên): link đối tượng không biết
+    người mở là ai, nên phản hồi gửi từ đây vẫn phải ghi tên.
+
+    Attributes:
+        slug: Đuôi link sau slug thiệp — `/invite/<slug thiệp>/<slug>`.
+        name: Tên để cặp đôi nhận ra ("Đồng nghiệp công ty"); không lên thiệp.
+        template: Mẫu riêng; rỗng = mẫu mặc định của thiệp.
+        greeting: Người được mời, điền vào chỗ tên khách trên thiệp ("Quý đồng
+            nghiệp" -> "Trân trọng kính mời Quý đồng nghiệp"); rỗng = "Quý khách".
+        events: Id lễ tiệc nhóm này được mời; rỗng = mọi lễ tiệc.
+    """
+
+    id: UUID
+    tenant_id: UUID
+    slug: str
+    name: str
+    template: str = ""
+    greeting: str = ""
+    events: tuple[str, ...] = ()
+    opens: int = 0
+    last_opened_at: datetime | None = None
+    created_at: datetime | None = None
+
+
+__all__ = ["Guest", "GuestDraft", "GuestReply", "InviteLink", "Wish"]

@@ -61,6 +61,8 @@ class WishDocument(TenantScopedDocument):
     status: str = "none"
     party_size: int = 1
     guest_code: str = ""
+    #: Đuôi link đối tượng gửi phản hồi; rỗng = link chung hoặc link riêng.
+    link: str = ""
 
     class Settings(TenantScopedDocument.Settings):
         name = "guest_wishes"
@@ -73,6 +75,31 @@ class WishDocument(TenantScopedDocument):
         ]
 
 
-DOCUMENTS: list[type[Document]] = [GuestDocument, WishDocument]
+class InviteLinkDocument(TenantScopedDocument):
+    """Link theo đối tượng: `/invite/<slug thiệp>/<slug>`, một mẫu cho cả nhóm người."""
 
-__all__ = ["DOCUMENTS", "GuestDocument", "WishDocument"]
+    slug: str
+    name: str
+    template: str = ""
+    greeting: str = ""
+    events: list[str] = Field(default_factory=list)
+    #: Lượt mở. Không đụng `updated_at`: mở thiệp không phải sửa link.
+    open_count: int = 0
+    last_opened_at: datetime | None = None
+
+    class Settings(TenantScopedDocument.Settings):
+        name = "guest_links"
+        indexes: ClassVar[list[IndexModel]] = [
+            *TenantScopedDocument.Settings.indexes,
+            # Link đã xoá được đổi đuôi (`<slug>~<id>`) nên đuôi cũ dùng lại được.
+            IndexModel(
+                [("tenant_id", ASCENDING), ("slug", ASCENDING)],
+                name="uq_guest_links_tenant_slug",
+                unique=True,
+            ),
+        ]
+
+
+DOCUMENTS: list[type[Document]] = [GuestDocument, WishDocument, InviteLinkDocument]
+
+__all__ = ["DOCUMENTS", "GuestDocument", "InviteLinkDocument", "WishDocument"]

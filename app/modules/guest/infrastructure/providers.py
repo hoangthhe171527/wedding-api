@@ -9,15 +9,20 @@ from fastapi import Depends
 from app.modules.guest.application.ports import PlanGuestLimit
 from app.modules.guest.application.use_cases import (
     CreateGuest,
+    CreateLink,
     DeleteGuest,
+    DeleteLink,
     DeleteWish,
     ImportGuests,
     ListGuests,
+    ListLinks,
     ListWishes,
     UpdateGuest,
+    UpdateLink,
 )
 from app.modules.guest.infrastructure.persistence.repositories import (
     BeanieGuestRepository,
+    BeanieInviteLinkRepository,
     BeanieWishRepository,
 )
 from app.modules.template import build_template_catalog_reader
@@ -61,6 +66,26 @@ def provide_delete_wish() -> DeleteWish:
     return DeleteWish(BeanieWishRepository())
 
 
+def provide_list_links() -> ListLinks:
+    return ListLinks(BeanieInviteLinkRepository())
+
+
+def provide_create_link() -> CreateLink:
+    return CreateLink(BeanieInviteLinkRepository(), build_template_catalog_reader())
+
+
+def provide_update_link() -> UpdateLink:
+    return UpdateLink(BeanieInviteLinkRepository(), build_template_catalog_reader())
+
+
+def provide_delete_link() -> DeleteLink:
+    return DeleteLink(BeanieInviteLinkRepository())
+
+
+ListLinksDep = Annotated[ListLinks, Depends(provide_list_links)]
+CreateLinkDep = Annotated[CreateLink, Depends(provide_create_link)]
+UpdateLinkDep = Annotated[UpdateLink, Depends(provide_update_link)]
+DeleteLinkDep = Annotated[DeleteLink, Depends(provide_delete_link)]
 ListWishesDep = Annotated[ListWishes, Depends(provide_list_wishes)]
 DeleteWishDep = Annotated[DeleteWish, Depends(provide_delete_wish)]
 ListGuestsDep = Annotated[ListGuests, Depends(provide_list_guests)]
@@ -71,10 +96,14 @@ ImportGuestsDep = Annotated[ImportGuests, Depends(provide_import_guests)]
 
 __all__ = [
     "CreateGuestDep",
+    "CreateLinkDep",
     "DeleteGuestDep",
+    "DeleteLinkDep",
     "DeleteWishDep",
     "ImportGuestsDep",
     "ListGuestsDep",
+    "ListLinksDep",
     "ListWishesDep",
     "UpdateGuestDep",
+    "UpdateLinkDep",
 ]

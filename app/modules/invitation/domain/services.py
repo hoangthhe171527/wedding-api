@@ -42,14 +42,22 @@ def effective_template(
     guest: dict[str, Any] | None,
     group_templates: dict[str, str],
     default_template: str,
+    link: dict[str, Any] | None = None,
 ) -> str:
-    """Mẫu riêng của khách -> mẫu của nhóm -> mẫu mặc định -> mẫu lùi."""
+    """Mẫu riêng của khách -> mẫu của nhóm -> mẫu của link đối tượng -> mẫu mặc định
+    -> mẫu lùi.
+
+    Khách có link riêng mở qua link đối tượng (hiếm: `/<đuôi>#<mã>`) vẫn thấy mẫu
+    dành riêng cho mình — link riêng nhắm đúng một người nên được ưu tiên.
+    """
     if guest is not None:
         if guest.get("template"):
             return str(guest["template"])
         by_group = group_templates.get(str(guest.get("group", "")))
         if by_group:
             return by_group
+    if link is not None and link.get("template"):
+        return str(link["template"])
     return default_template or FALLBACK_TEMPLATE
 
 
@@ -67,6 +75,20 @@ def public_wedding(snapshot: dict[str, Any]) -> dict[str, Any]:
     return data
 
 
+def for_audience(wedding: dict[str, Any], link: dict[str, Any] | None) -> dict[str, Any]:
+    """Bản công khai cho người mở link đối tượng: chỉ những lễ tiệc nhóm đó được mời.
+
+    Lọc ở máy chủ chứ không chỉ ẩn ở giao diện — đồng nghiệp mở link không nhận
+    được giờ, địa chỉ tiệc nhà bên kia. Link chọn lễ tiệc không còn (đã xoá) thì
+    giữ nguyên danh sách: thiệp không bao giờ rỗng lễ tiệc.
+    """
+    wanted = set((link or {}).get("events") or ())
+    if not wanted:
+        return wedding
+    events = [item for item in wedding.get("events") or [] if item.get("id") in wanted]
+    return {**wedding, "events": events} if events else wedding
+
+
 def public_guest(guest: dict[str, Any] | None) -> dict[str, Any] | None:
     """Khách công khai: bỏ nhóm (chỉ dùng để chọn mẫu)."""
     if guest is None:
@@ -78,6 +100,7 @@ __all__ = [
     "FALLBACK_TEMPLATE",
     "PUBLIC_WEDDING_KEYS",
     "effective_template",
+    "for_audience",
     "public_guest",
     "public_wedding",
 ]
