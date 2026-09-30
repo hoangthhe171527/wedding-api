@@ -19,6 +19,7 @@ from app.modules.access import (
 from app.modules.identity.application.session_issuer import SessionIssuer
 from app.modules.identity.application.use_cases import (
     ChangeOwnPassword,
+    DeleteOwnAccount,
     GetCurrentActor,
     ListUsers,
     LoginUser,
@@ -70,6 +71,31 @@ def provide_change_own_password() -> ChangeOwnPassword:
     return ChangeOwnPassword(BeanieUserRepository(), BeanieAuthSessionRepository())
 
 
+def provide_delete_own_account() -> DeleteOwnAccount:
+    # Các module chỉ được nối qua barrel. Import lười tránh vòng khởi động vì
+    # billing/wedding cũng dùng các bridge của identity.
+    from app.modules.access import build_account_data_deleter as access_deleter
+    from app.modules.billing import build_account_data_deleter as billing_deleter
+    from app.modules.guest import build_account_data_deleter as guest_deleter
+    from app.modules.media import build_account_data_deleter as media_deleter
+    from app.modules.printing import build_account_data_deleter as printing_deleter
+    from app.modules.wedding import build_account_data_deleter as wedding_deleter
+
+    return DeleteOwnAccount(
+        BeanieUserRepository(),
+        BeanieStudioRepository(),
+        BeanieAuthSessionRepository(),
+        (
+            access_deleter(),
+            wedding_deleter(),
+            guest_deleter(),
+            media_deleter(),
+            billing_deleter(),
+            printing_deleter(),
+        ),
+    )
+
+
 def provide_list_users() -> ListUsers:
     return ListUsers(BeanieUserRepository(), BeanieStudioRepository(), build_user_role_reader())
 
@@ -84,11 +110,13 @@ RefreshTokenDep = Annotated[RefreshToken, Depends(provide_refresh_token)]
 LogoutUserDep = Annotated[LogoutUser, Depends(provide_logout_user)]
 GetCurrentActorDep = Annotated[GetCurrentActor, Depends(provide_get_current_actor)]
 ChangeOwnPasswordDep = Annotated[ChangeOwnPassword, Depends(provide_change_own_password)]
+DeleteOwnAccountDep = Annotated[DeleteOwnAccount, Depends(provide_delete_own_account)]
 ListUsersDep = Annotated[ListUsers, Depends(provide_list_users)]
 SetUserActiveDep = Annotated[SetUserActive, Depends(provide_set_user_active)]
 
 __all__ = [
     "ChangeOwnPasswordDep",
+    "DeleteOwnAccountDep",
     "GetCurrentActorDep",
     "ListUsersDep",
     "LoginUserDep",

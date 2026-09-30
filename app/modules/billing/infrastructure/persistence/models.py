@@ -83,6 +83,32 @@ class PaymentEventDocument(BaseDocument):
         ]
 
 
-DOCUMENTS: list[type[Document]] = [OrderDocument, PaymentEventDocument]
+class ApplePurchaseDocument(BaseDocument):
+    """Giao dịch StoreKit 2 đã xác thực; transaction id là khoá toàn hệ thống.
 
-__all__ = ["DOCUMENTS", "OrderDocument", "PaymentEventDocument"]
+    Đây là collection có ``tenant_id`` nhưng không kế thừa
+    ``TenantScopedDocument`` có chủ ý: Apple transaction id phải duy nhất giữa
+    các tài khoản, để một giao dịch không thể bị chuyển sang xưởng khác.
+    """
+
+    transaction_id: str
+    original_transaction_id: str
+    product_id: str
+    plan: str
+    environment: str
+    tenant_id: UUID
+    purchase_date: datetime
+
+    class Settings(BaseDocument.Settings):
+        name = "apple_purchases"
+        indexes: ClassVar[list[IndexModel]] = [
+            IndexModel([("transaction_id", ASCENDING)], name="uq_apple_transaction", unique=True),
+            IndexModel(
+                [("tenant_id", ASCENDING), ("created_at", DESCENDING)], name="ix_apple_tenant"
+            ),
+        ]
+
+
+DOCUMENTS: list[type[Document]] = [OrderDocument, PaymentEventDocument, ApplePurchaseDocument]
+
+__all__ = ["DOCUMENTS", "ApplePurchaseDocument", "OrderDocument", "PaymentEventDocument"]

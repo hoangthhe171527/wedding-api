@@ -44,10 +44,12 @@ class PaymentMethod(StrEnum):
     * `bank_transfer` — chuyển khoản VietQR; ngân hàng báo về qua webhook và
       hệ thống tự khớp theo mã đơn trong nội dung chuyển khoản.
     * `momo` — ví MoMo, cổng báo kết quả qua IPN có chữ ký.
+    * `apple_iap` — giao dịch StoreKit 2, đã xác thực JWS bởi máy chủ.
     """
 
     BANK_TRANSFER = "bank_transfer"
     MOMO = "momo"
+    APPLE_IAP = "apple_iap"
 
 
 class PaymentEventStatus(StrEnum):

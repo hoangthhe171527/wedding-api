@@ -3,6 +3,7 @@
 Sở hữu `guests`.
 """
 
+from app.modules.guest.infrastructure.external.account_deletion import build_account_data_deleter
 from app.modules.guest.infrastructure.external.bridges import (
     build_guest_by_code_reader,
     build_guest_counter,
@@ -13,6 +14,7 @@ from app.modules.guest.infrastructure.external.bridges import (
 from app.modules.guest.interfaces.http.router import router
 
 __all__ = [
+    "build_account_data_deleter",
     "build_guest_by_code_reader",
     "build_guest_counter",
     "build_guest_responder",

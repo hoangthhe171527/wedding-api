@@ -125,6 +125,10 @@ class BeanieUserRepository:
     async def delete(self, user_id: UUID) -> None:
         await UserDocument.find_one({"_id": user_id}).delete()
 
+    async def delete_for_tenant(self, tenant_id: UUID) -> int:
+        result = await UserDocument.get_motor_collection().delete_many({"tenant_id": tenant_id})
+        return int(result.deleted_count)
+
     async def set_password_hash(self, tenant_id: UUID, user_id: UUID, password_hash: str) -> bool:
         result = await UserDocument.get_motor_collection().update_one(
             {"_id": user_id, "tenant_id": tenant_id, "deleted_at": None},
@@ -240,6 +244,12 @@ class BeanieAuthSessionRepository:
             criteria, {"$set": {"revoked_at": now, "updated_at": now}}
         )
         return int(result.modified_count)
+
+    async def delete_for_tenant(self, tenant_id: UUID) -> int:
+        result = await AuthSessionDocument.get_motor_collection().delete_many(
+            {"tenant_id": tenant_id}
+        )
+        return int(result.deleted_count)
 
 
 __all__ = ["BeanieAuthSessionRepository", "BeanieStudioRepository", "BeanieUserRepository"]

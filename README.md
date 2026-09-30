@@ -66,7 +66,7 @@ make logs
 | Thông tin cưới | `GET/PUT /wedding` (gồm `theme` — màu, font, màn mở, thứ tự/ẩn phần web — và `card_design` — thiệp tự thiết kế), `POST /wedding/setup`, `PUT /wedding/checklist`, `PUT /wedding/publication` | `studio.manage` |
 | Gợi ý câu chữ (AI) | `GET /wedding/wording/ai`, `POST /wedding/wording/suggest` — tắt khi thiếu `ANTHROPIC_API_KEY` (503 `ai_disabled`) | `studio.manage` |
 | Khách mời | `GET/POST /guests`, `POST /guests/import`, `PATCH/DELETE /guests/{id}`, `GET /guests/wishes`, `DELETE /guests/wishes/{id}` | `guest.manage` |
-| Gói dịch vụ | `GET /billing/plans`, `GET /billing/contact` (công khai, không giá — nâng gói qua Zalo), `GET /billing`, `POST /billing/orders`, `GET /billing/orders/{id}`, `POST /billing/orders/{id}/cancel`, `POST /billing/orders/{id}/simulate-paid` (chỉ giả lập) | `studio.manage` |
+| Gói dịch vụ | `GET /billing/plans`, `GET /billing/contact`, `GET /billing`, `POST /billing/iap/apple/verify` (xác thực signed transaction StoreKit 2), `POST /billing/orders`, `GET /billing/orders/{id}`, `POST /billing/orders/{id}/cancel`, `POST /billing/orders/{id}/simulate-paid` (chỉ giả lập) | `studio.manage` |
 | Webhook thanh toán | `POST /billing/webhooks/bank` (khoá `Apikey`), `POST /billing/webhooks/momo` (chữ ký HMAC) | công khai, xác thực riêng |
 | Xét gói | `GET /wedding/plan-check` | `studio.manage` |
 | Ảnh cưới | `GET/POST /photos`, `POST /photos/{id}/cover`, `DELETE /photos/{id}` | `studio.manage` |

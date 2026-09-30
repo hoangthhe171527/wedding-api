@@ -47,8 +47,11 @@ from app.modules.billing.infrastructure.providers import (
     RecordMomoIpnDep,
     SimulatePaymentDep,
     StudioPlansDep,
+    VerifyApplePurchaseDep,
 )
 from app.modules.billing.interfaces.http.schemas import (
+    AppleIapVerifyIn,
+    AppleIapVerifyOut,
     BankWebhookIn,
     BillingOut,
     ConfirmIn,
@@ -90,6 +93,35 @@ async def contact() -> dict[str, Any]:
 @router.get("/billing", response_model=ResponseEnvelope[BillingOut], summary="Gói của xưởng")
 async def get_billing(actor: StudioEditor, use_case: GetBillingDep) -> dict[str, Any]:
     return ok(BillingOut.of(await use_case.execute(actor)))
+
+
+@router.post(
+    "/billing/iap/apple/verify",
+    response_model=ResponseEnvelope[AppleIapVerifyOut],
+    summary="Xác thực giao dịch App Store",
+)
+async def verify_apple_iap(
+    payload: AppleIapVerifyIn,
+    actor: StudioEditor,
+    use_case: VerifyApplePurchaseDep,
+) -> dict[str, Any]:
+    grant = await use_case.execute(
+        actor,
+        product_id=payload.product_id,
+        transaction_id=payload.transaction_id,
+        signed_transaction=payload.signed_transaction,
+    )
+    return ok(
+        AppleIapVerifyOut(
+            transaction_id=grant.transaction_id,
+            plan=LabelOut(slug=grant.plan.value, label=PLAN_SPECS[grant.plan].label),
+            current_plan=LabelOut(
+                slug=grant.current_plan.value,
+                label=PLAN_SPECS[grant.current_plan].label,
+            ),
+            activated=grant.activated,
+        )
+    )
 
 
 @router.post(

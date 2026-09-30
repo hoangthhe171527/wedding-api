@@ -187,6 +187,23 @@ class BillingOut(BaseModel):
         )
 
 
+class AppleIapVerifyIn(BaseModel):
+    """JWS StoreKit 2 gửi từ app lên để máy chủ xác thực."""
+
+    product_id: str = Field(min_length=1, max_length=200)
+    transaction_id: str = Field(min_length=1, max_length=200)
+    signed_transaction: str = Field(min_length=1, max_length=100_000)
+
+
+class AppleIapVerifyOut(BaseModel):
+    """Kết quả cấp quyền sau khi xác thực transaction Apple."""
+
+    transaction_id: str
+    plan: LabelOut
+    current_plan: LabelOut
+    activated: bool
+
+
 class OrderIn(BaseModel):
     plan: Plan
     method: PaymentMethod = PaymentMethod.BANK_TRANSFER
@@ -257,6 +274,8 @@ class WebhookAckOut(BaseModel):
 
 
 __all__ = [
+    "AppleIapVerifyIn",
+    "AppleIapVerifyOut",
     "BankWebhookIn",
     "BillingOut",
     "ConfirmIn",

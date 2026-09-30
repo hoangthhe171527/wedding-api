@@ -8,6 +8,7 @@ Barrel công bố hàm dựng cho module khác cắm vào cổng của họ — 
 """
 
 from app.modules.access.domain.role_blueprints import ADMIN_ROLE_SLUG, CUSTOMER_ROLE_SLUG
+from app.modules.access.infrastructure.external.account_deletion import build_account_data_deleter
 from app.modules.access.infrastructure.external.tenant_permissions import (
     build_tenant_permission_reader,
 )
@@ -22,6 +23,7 @@ from app.modules.access.interfaces.http.router import router
 __all__ = [
     "ADMIN_ROLE_SLUG",
     "CUSTOMER_ROLE_SLUG",
+    "build_account_data_deleter",
     "build_ensure_default_roles",
     "build_grant_role",
     "build_resolve_permissions",

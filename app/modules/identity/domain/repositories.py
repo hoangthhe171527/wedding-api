@@ -23,7 +23,7 @@ class StudioRepository(Protocol):
     async def find_many(self, studio_ids: Sequence[UUID]) -> list[Studio]: ...
 
     async def delete(self, studio_id: UUID) -> None:
-        """Xoá cứng — chỉ để hoàn tác một lượt đăng ký dở dang."""
+        """Xoá cứng studio sau khi dữ liệu các module đã được dọn."""
         ...
 
 
@@ -66,7 +66,11 @@ class UserRepository(Protocol):
         ...
 
     async def delete(self, user_id: UUID) -> None:
-        """Xoá cứng — chỉ để hoàn tác một lượt đăng ký dở dang."""
+        """Xoá cứng một người dùng."""
+        ...
+
+    async def delete_for_tenant(self, tenant_id: UUID) -> int:
+        """Xoá cứng mọi người dùng thuộc xưởng."""
         ...
 
     async def set_password_hash(
@@ -118,6 +122,10 @@ class AuthSessionRepository(Protocol):
         self, user_id: UUID, *, except_session_id: UUID | None = None
     ) -> int:
         """Thu hồi mọi phiên còn sống của một người. Trả số phiên bị thu hồi."""
+        ...
+
+    async def delete_for_tenant(self, tenant_id: UUID) -> int:
+        """Xoá cứng mọi phiên của xưởng sau khi tài khoản đã xác nhận."""
         ...
 
 

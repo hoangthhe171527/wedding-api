@@ -112,6 +112,33 @@ async def test_dang_xuat_giet_access_token_ngay(client: AsyncClient, customer: S
     assert refresh.status_code == 401
 
 
+async def test_tai_khoan_tu_xoa_duoc_toan_bo_du_lieu(
+    client: AsyncClient, customer: Session
+) -> None:
+    wrong = await client.request(
+        "DELETE",
+        f"{API}/auth/account",
+        json={"password": "sai-mat-khau"},
+        headers=customer.headers,
+    )
+    assert wrong.status_code == 400
+    assert wrong.json()["code"] == "wrong_password"
+
+    deleted = await client.request(
+        "DELETE",
+        f"{API}/auth/account",
+        json={"password": "matkhau123"},
+        headers=customer.headers,
+    )
+    assert deleted.status_code == 200, deleted.text
+    assert (await client.get(f"{API}/auth/me", headers=customer.headers)).status_code == 401
+    login_again = await client.post(
+        f"{API}/auth/login",
+        json={"identifier": "coupleA@example.com", "password": "matkhau123"},
+    )
+    assert login_again.status_code == 401
+
+
 async def test_doi_mat_khau_cat_thiet_bi_khac_giu_thiet_bi_nay(
     client: AsyncClient, customer: Session
 ) -> None:

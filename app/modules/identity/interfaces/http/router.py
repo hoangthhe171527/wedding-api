@@ -8,6 +8,7 @@
 | POST   | /api/v1/auth/logout           | chỉ cần đăng nhập               |
 | GET    | /api/v1/auth/me               | chỉ cần đăng nhập               |
 | POST   | /api/v1/auth/change-password  | chỉ cần đăng nhập               |
+| DELETE | /api/v1/auth/account          | chỉ cần đăng nhập               |
 
 Không endpoint nào ở đây gắn quyền theo slug: đây là các thao tác về CHÍNH tài
 khoản đang gọi. Router không bắt lỗi — use case ném `AppError`.
@@ -29,6 +30,7 @@ from app.modules.identity.domain.errors import InvalidIdentifierError
 from app.modules.identity.domain.services import normalize_identifier
 from app.modules.identity.infrastructure.providers import (
     ChangeOwnPasswordDep,
+    DeleteOwnAccountDep,
     GetCurrentActorDep,
     LoginUserDep,
     LogoutUserDep,
@@ -38,6 +40,7 @@ from app.modules.identity.infrastructure.providers import (
 from app.modules.identity.interfaces.http.schemas import (
     ActorOut,
     ChangePasswordIn,
+    DeleteAccountIn,
     LoginIn,
     LogoutIn,
     RefreshIn,
@@ -229,6 +232,23 @@ async def change_password(
     """Đổi mật khẩu; mọi phiên trên thiết bị khác bị thu hồi."""
     await use_case.execute(actor, payload.current_password, payload.new_password)
     return ok_message("Đã đổi mật khẩu. Các thiết bị khác cần đăng nhập lại.")
+
+
+@router.delete(
+    "/account",
+    response_model=ResponseEnvelope[MessageOut],
+    summary="Xoá tài khoản và dữ liệu",
+)
+async def delete_account(
+    payload: DeleteAccountIn,
+    response: Response,
+    actor: ActorDep,
+    use_case: DeleteOwnAccountDep,
+) -> dict[str, Any]:
+    """Xoá cứng tài khoản, xưởng và dữ liệu liên quan sau khi xác nhận mật khẩu."""
+    await use_case.execute(actor, payload.password)
+    _clear_refresh_cookie(response)
+    return ok_message("Đã xoá tài khoản và toàn bộ dữ liệu liên quan.")
 
 
 __all__ = ["router"]

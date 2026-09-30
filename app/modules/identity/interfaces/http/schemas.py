@@ -60,6 +60,12 @@ class ChangePasswordIn(BaseModel):
     new_password: str = Field(min_length=8, max_length=256)
 
 
+class DeleteAccountIn(BaseModel):
+    """Xác nhận xoá tài khoản bằng mật khẩu hiện tại."""
+
+    password: str = Field(min_length=1, max_length=256)
+
+
 class StudioOut(BaseModel):
     """Xưởng thiệp của actor."""
 
@@ -158,6 +164,7 @@ __all__ = [
     "ActorOut",
     "AdminUserOut",
     "ChangePasswordIn",
+    "DeleteAccountIn",
     "LoginIn",
     "LogoutIn",
     "RefreshIn",

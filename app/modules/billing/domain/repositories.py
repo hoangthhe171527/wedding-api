@@ -7,7 +7,7 @@ from typing import Protocol
 from uuid import UUID
 
 from app.core.pages import Page, PageParams
-from app.modules.billing.domain.entities import Order, PaymentEvent
+from app.modules.billing.domain.entities import ApplePurchase, Order, PaymentEvent
 from app.modules.billing.domain.enums import (
     OrderStatus,
     PaymentEventStatus,
@@ -105,7 +105,26 @@ class PaymentEventRepository(Protocol):
     async def list_recent(self, limit: int) -> list[PaymentEvent]: ...
 
 
+class ApplePurchaseRepository(Protocol):
+    """Sổ giao dịch Apple đã xác thực, dùng để chống cấp quyền lặp / chuyển tài khoản."""
+
+    async def get_by_transaction_id(self, transaction_id: str) -> ApplePurchase | None: ...
+
+    async def create(
+        self,
+        *,
+        transaction_id: str,
+        original_transaction_id: str,
+        product_id: str,
+        plan: Plan,
+        environment: str,
+        tenant_id: UUID,
+        purchase_date: datetime,
+    ) -> ApplePurchase: ...
+
+
 __all__ = [
+    "ApplePurchaseRepository",
     "DuplicatePaymentEventError",
     "OrderCodeTakenError",
     "OrderRepository",

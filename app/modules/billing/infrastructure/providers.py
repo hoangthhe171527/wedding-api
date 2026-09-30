@@ -19,10 +19,13 @@ from app.modules.billing.application.use_cases import (
     RecordMomoIpn,
     SimulatePayment,
     StudioPlans,
+    VerifyApplePurchase,
 )
+from app.modules.billing.infrastructure.external.apple_iap import AppleIapVerifier
 from app.modules.billing.infrastructure.external.momo import HttpMomoGateway
 from app.modules.billing.infrastructure.external.plan_waiver import AdminPlanWaiver
 from app.modules.billing.infrastructure.persistence.repositories import (
+    BeanieApplePurchaseRepository,
     BeanieOrderRepository,
     BeaniePaymentEventRepository,
 )
@@ -77,8 +80,17 @@ def provide_studio_plans() -> StudioPlans:
     return StudioPlans(BeanieOrderRepository())
 
 
+def provide_verify_apple_purchase() -> VerifyApplePurchase:
+    return VerifyApplePurchase(
+        BeanieOrderRepository(),
+        BeanieApplePurchaseRepository(),
+        AppleIapVerifier(),
+    )
+
+
 GrantPlanDep = Annotated[GrantPlan, Depends(provide_grant_plan)]
 StudioPlansDep = Annotated[StudioPlans, Depends(provide_studio_plans)]
+VerifyApplePurchaseDep = Annotated[VerifyApplePurchase, Depends(provide_verify_apple_purchase)]
 GetBillingDep = Annotated[GetBilling, Depends(provide_get_billing)]
 CreateOrderDep = Annotated[CreateOrder, Depends(provide_create_order)]
 GetOrderDep = Annotated[GetOrder, Depends(provide_get_order)]
@@ -103,4 +115,5 @@ __all__ = [
     "RecordMomoIpnDep",
     "SimulatePaymentDep",
     "StudioPlansDep",
+    "VerifyApplePurchaseDep",
 ]

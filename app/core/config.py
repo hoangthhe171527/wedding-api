@@ -142,6 +142,17 @@ class Settings(BaseSettings):
     MOMO_SECRET_KEY: str = ""
     MOMO_ENDPOINT: str = "https://test-payment.momo.vn/v2/gateway/api/create"
 
+    # --- Apple In-App Purchase (StoreKit 2) -------------------------------
+    #: Bundle id phải khớp với bản iOS gửi lên App Store Connect.
+    APPLE_IAP_BUNDLE_ID: str = "vn.sunriseieco.thiepHy"
+    #: App Store ID (Apple ID dạng số) — bắt buộc khi xác thực production JWS.
+    APPLE_IAP_APPLE_ID: int | None = None
+    #: Product ID phải trùng tuyệt đối với hai sản phẩm Non-Consumable trên App Store Connect.
+    APPLE_IAP_STANDARD_PRODUCT_ID: str = "vn.sunriseieco.thiephy.plan.standard"
+    APPLE_IAP_PREMIUM_PRODUCT_ID: str = "vn.sunriseieco.thiephy.plan.premium"
+    #: Cho phép kiểm tra OCSP online của chuỗi chứng thư Apple.
+    APPLE_IAP_ENABLE_ONLINE_CHECKS: bool = True
+
     # --- Gợi ý câu chữ bằng AI (Claude) ------------------------------------
     #: Để trống là tắt tính năng — nút "Gợi ý bằng AI" ẩn đi, endpoint trả 503.
     ANTHROPIC_API_KEY: str = ""
@@ -177,6 +188,12 @@ class Settings(BaseSettings):
     def _strip_trailing_slash(cls, value: str) -> str:
         """Bỏ `/` cuối để ghép đường dẫn không sinh `//`."""
         return value.rstrip("/")
+
+    @field_validator("APPLE_IAP_APPLE_ID", mode="before")
+    @classmethod
+    def _empty_apple_id_to_none(cls, value: object) -> object:
+        """Cho phép để trống App Store ID khi chỉ chạy sandbox/local."""
+        return None if value == "" else value
 
     @field_validator("JWT_SECRET")
     @classmethod

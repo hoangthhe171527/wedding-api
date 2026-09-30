@@ -23,8 +23,8 @@ services:
       - "443:443"
       - "443:443/udp"
     environment:
-      DOMAIN: ${DOMAIN:?Đặt DOMAIN, vd thiephy.vn}
-      MEDIA_DOMAIN: ${MEDIA_DOMAIN:?Đặt MEDIA_DOMAIN, vd media.thiephy.vn}
+      DOMAIN: ${DOMAIN:?Đặt DOMAIN, vd thiephy.sunriseieco.vn}
+      MEDIA_DOMAIN: ${MEDIA_DOMAIN:?Đặt MEDIA_DOMAIN, vd media.thiephy.sunriseieco.vn}
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data

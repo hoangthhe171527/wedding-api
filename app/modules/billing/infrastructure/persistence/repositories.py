@@ -11,7 +11,7 @@ from pymongo.errors import DuplicateKeyError
 
 from app.core.base_model import utc_now
 from app.core.pages import Page, PageParams
-from app.modules.billing.domain.entities import Order, PaymentEvent
+from app.modules.billing.domain.entities import ApplePurchase, Order, PaymentEvent
 from app.modules.billing.domain.enums import (
     OrderStatus,
     PaymentEventStatus,
@@ -23,6 +23,7 @@ from app.modules.billing.domain.repositories import (
     OrderCodeTakenError,
 )
 from app.modules.billing.infrastructure.persistence.models import (
+    ApplePurchaseDocument,
     OrderDocument,
     PaymentEventDocument,
 )
@@ -61,6 +62,18 @@ def _event(doc: PaymentEventDocument) -> PaymentEvent:
         received_at=doc.created_at,
         order_code=doc.order_code,
         tenant_id=doc.tenant_id,
+    )
+
+
+def _apple_purchase(doc: ApplePurchaseDocument) -> ApplePurchase:
+    return ApplePurchase(
+        transaction_id=doc.transaction_id,
+        original_transaction_id=doc.original_transaction_id,
+        product_id=doc.product_id,
+        plan=Plan(doc.plan),
+        environment=doc.environment,
+        tenant_id=doc.tenant_id,
+        purchase_date=doc.purchase_date,
     )
 
 
@@ -255,4 +268,45 @@ class BeaniePaymentEventRepository:
         return [_event(doc) for doc in docs]
 
 
-__all__ = ["BeanieOrderRepository", "BeaniePaymentEventRepository"]
+class BeanieApplePurchaseRepository:
+    """Sổ transaction Apple đã xác thực trên Mongo."""
+
+    async def get_by_transaction_id(self, transaction_id: str) -> ApplePurchase | None:
+        doc = await ApplePurchaseDocument.find_one({"transaction_id": transaction_id})
+        return _apple_purchase(doc) if doc else None
+
+    async def create(
+        self,
+        *,
+        transaction_id: str,
+        original_transaction_id: str,
+        product_id: str,
+        plan: Plan,
+        environment: str,
+        tenant_id: UUID,
+        purchase_date: datetime,
+    ) -> ApplePurchase:
+        doc = ApplePurchaseDocument(
+            transaction_id=transaction_id,
+            original_transaction_id=original_transaction_id,
+            product_id=product_id,
+            plan=plan.value,
+            environment=environment,
+            tenant_id=tenant_id,
+            purchase_date=purchase_date,
+        )
+        try:
+            await doc.insert()
+        except DuplicateKeyError:
+            existing = await self.get_by_transaction_id(transaction_id)
+            if existing is None:
+                raise
+            return existing
+        return _apple_purchase(doc)
+
+
+__all__ = [
+    "BeanieApplePurchaseRepository",
+    "BeanieOrderRepository",
+    "BeaniePaymentEventRepository",
+]

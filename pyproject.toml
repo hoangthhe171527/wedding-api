@@ -31,6 +31,8 @@ dependencies = [
     "pillow>=11.0",
     # Gọi cổng thanh toán (MoMo)
     "httpx>=0.28",
+    # Xác thực JWS giao dịch StoreKit 2 do Apple ký trên máy chủ
+    "app-store-server-library>=3.1.2,<4",
     # Gợi ý câu chữ thiệp bằng Claude (tắt khi không có ANTHROPIC_API_KEY)
     "anthropic>=1.8,<2",
     # Lưu ảnh (và file tải lên) trên MinIO / S3 thay vì trong MongoDB

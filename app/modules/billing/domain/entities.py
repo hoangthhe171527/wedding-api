@@ -58,6 +58,19 @@ class PaymentEvent:
 
 
 @dataclass(frozen=True, slots=True)
+class ApplePurchase:
+    """Giao dịch StoreKit đã xác thực và đã gắn với một xưởng."""
+
+    transaction_id: str
+    original_transaction_id: str
+    product_id: str
+    plan: Plan
+    environment: str
+    tenant_id: UUID
+    purchase_date: datetime
+
+
+@dataclass(frozen=True, slots=True)
 class Usage:
     """Những gì một đám cưới đang dùng — dữ liệu thuần do `wedding` gom và gửi sang."""
 
@@ -81,4 +94,4 @@ class Violation:
     subject: str = ""
 
 
-__all__ = ["Order", "PaymentEvent", "Usage", "Violation"]
+__all__ = ["ApplePurchase", "Order", "PaymentEvent", "Usage", "Violation"]

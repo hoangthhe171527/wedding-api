@@ -31,4 +31,10 @@ class UserRoleReader(Protocol):
     async def labels_for(self, user_ids: Sequence[UUID]) -> dict[UUID, list[str]]: ...
 
 
-__all__ = ["PermissionResolver", "RoleGranter", "UserRoleReader"]
+class TenantDataDeleter(Protocol):
+    """Xoá dữ liệu do một module sở hữu trong một xưởng."""
+
+    async def execute(self, tenant_id: UUID) -> None: ...
+
+
+__all__ = ["PermissionResolver", "RoleGranter", "TenantDataDeleter", "UserRoleReader"]

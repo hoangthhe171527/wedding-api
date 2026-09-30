@@ -19,8 +19,13 @@ from app.modules.billing.application.use_cases.record_payment import (
     RecordBankTransfer,
     RecordMomoIpn,
 )
+from app.modules.billing.application.use_cases.verify_apple_purchase import (
+    ApplePurchaseGrant,
+    VerifyApplePurchase,
+)
 
 __all__ = [
+    "ApplePurchaseGrant",
     "BankTransfer",
     "BillingSummary",
     "CancelOrder",
@@ -38,4 +43,5 @@ __all__ = [
     "RecordMomoIpn",
     "SimulatePayment",
     "StudioPlans",
+    "VerifyApplePurchase",
 ]
