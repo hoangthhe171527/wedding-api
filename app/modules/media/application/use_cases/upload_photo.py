@@ -79,7 +79,12 @@ class UploadPhoto:
                 code="photo_unreadable",
             ) from None
 
-        order = replaced.order if replaced is not None else existing[-1].order + 1 if existing else 0
+        if replaced is not None:
+            order = replaced.order
+        elif existing:
+            order = existing[-1].order + 1
+        else:
+            order = 0
         photo = await self._photos.create(
             actor.tenant_id, image, order=order, actor_id=actor.user_id
         )
