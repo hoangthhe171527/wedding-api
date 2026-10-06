@@ -12,8 +12,12 @@ jobs:
       - uses: actions/checkout@v4
       - name: Dựng image dev (có ruff/mypy/pytest)
         run: docker compose build api
-      - name: Khởi động MongoDB, Redis, S3 và API
-        run: docker compose up -d --wait
+      - name: Khởi động MongoDB, Redis và S3
+        run: docker compose up -d mongodb redis s3
+      - name: Khởi tạo MongoDB replica set
+        run: docker compose run --rm --no-deps mongo-init
+      - name: Khởi động API và chờ sẵn sàng
+        run: docker compose up -d --wait api
       - name: Lint
         run: docker compose exec -T api ruff check app tests
       - name: Định dạng
