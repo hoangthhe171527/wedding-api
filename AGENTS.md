@@ -6,3 +6,9 @@
 - Danh mục quyền (`app/core/permissions.py`) phải khớp `wedding-web/src/core/access/permissions.ts` — sửa cả hai phía cùng lúc.
 - Không commit bí mật, `.env`, dữ liệu thật. Seed chỉ chạy ở `local`/`test`.
 - Commit/push không đồng nghĩa được phép merge hay triển khai.
+
+## Shipping
+
+- Repository dùng một nhánh chính `main`, không có nhánh tích hợp riêng.
+- Mỗi thay đổi đi qua nhánh ngắn `ship/<slug>` và pull request vào `main`.
+- Dùng merge commit; triển khai production là bước riêng theo `deploy/README.md`.
