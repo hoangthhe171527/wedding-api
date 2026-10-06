@@ -4,6 +4,7 @@
 |--------|------------------------------------|-----------------------|
 | GET    | /api/v1/photos                     | `studio.manage`       |
 | POST   | /api/v1/photos                     | `studio.manage`       |
+| POST   | /api/v1/photos/{id}/replace        | `studio.manage`       |
 | POST   | /api/v1/photos/{id}/cover          | `studio.manage`       |
 | DELETE | /api/v1/photos/{id}                | `studio.manage`       |
 | GET    | /api/v1/media/photos/{id}?exp&sig[&w=sm] | công khai, URL đã ký |
@@ -62,6 +63,27 @@ async def upload_photo(
     if not data:
         raise ValidationError("Tệp ảnh rỗng.", code="photo_empty")
     await upload.execute(actor, data, filename=file.filename or "ảnh")
+    return ok_list(photos_out(await listing.execute(actor)))
+
+
+@router.post(
+    "/photos/{photo_id}/replace",
+    response_model=ResponseEnvelope[list[PhotoOut]],
+    summary="Thay ảnh tại đúng vị trí trong album",
+)
+async def replace_photo(
+    photo_id: UUID,
+    actor: StudioEditor,
+    upload: UploadPhotoDep,
+    listing: ListPhotosDep,
+    file: Annotated[UploadFile, File(description="Ảnh JPG/PNG/WebP")],
+) -> dict[str, Any]:
+    """Giữ thứ tự/ảnh bìa; tạo ảnh mới an toàn rồi mới xoá byte ảnh cũ."""
+    limit = get_settings().PHOTO_MAX_BYTES
+    data = await file.read(limit + 1)
+    if not data:
+        raise ValidationError("Tệp ảnh rỗng.", code="photo_empty")
+    await upload.execute(actor, data, filename=file.filename or "ảnh", replacing=photo_id)
     return ok_list(photos_out(await listing.execute(actor)))
 
 
