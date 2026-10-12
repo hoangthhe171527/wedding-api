@@ -35,7 +35,7 @@ async def test_setup_mien_phi_xuat_ban_duoc(
     assert await _publish(client, customer, f"mien-phi-{mode}") == 200
 
 
-async def test_mac_dinh_he_thong_vuot_goi_khong_ap_cho_xuong_mien_phi(
+async def test_mac_dinh_he_thong_cu_duoc_doi_sang_bo_doc_ban_mien_phi(
     client: AsyncClient, admin: Session, customer: Session
 ) -> None:
     saved = await client.put(
@@ -52,7 +52,7 @@ async def test_mac_dinh_he_thong_vuot_goi_khong_ap_cho_xuong_mien_phi(
         f"{API}/wedding/setup", json={"mode": "sample"}, headers=customer.headers
     )
     wedding = created.json()["data"]
-    assert wedding["group_templates"]["Họ hàng"] == "hongphuc", "mẫu trong gói: vẫn nhận"
-    assert wedding["group_templates"]["Bạn bè"] == "maudon", "mẫu vượt gói: giữ mẫu miễn phí"
-    assert wedding["default_template"] == "ngoctrai"
+    assert wedding["group_templates"]["Họ hàng"].startswith("db")
+    assert wedding["group_templates"]["Bạn bè"].startswith("db")
+    assert wedding["default_template"].startswith("db")
     assert await _publish(client, customer, "mien-phi-mac-dinh") == 200

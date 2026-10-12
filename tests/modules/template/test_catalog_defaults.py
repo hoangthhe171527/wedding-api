@@ -9,8 +9,8 @@ from httpx import AsyncClient
 from tests.conftest import API, Session, buy_plan
 
 DEFAULTS: dict[str, Any] = {
-    "group_templates": {"Họ hàng": "songhy", "Bạn bè": "hongnhung"},
-    "default_template": "ngoctrai",
+    "group_templates": {"Họ hàng": "dbsonmai", "Bạn bè": "dbluadao"},
+    "default_template": "dbgomlam",
     "wording": {"family": {"invite": "Trân trọng kính mời ", "announce": ""}},
     "messages": {"friends": "Tụi mình cưới rồi nè {khach}! {link}"},
 }
@@ -46,7 +46,7 @@ async def test_luu_va_ap_mac_dinh(client: AsyncClient, admin: Session, customer:
     assert body["wording"] == {"family": {"invite": "Trân trọng kính mời"}}, "ô trống bị bỏ"
 
     public = (await client.get(f"{API}/templates/defaults")).json()["data"]
-    assert public["group_templates"]["Họ hàng"] == "songhy"
+    assert public["group_templates"]["Họ hàng"] == "dbsonmai"
 
     # Xưởng mới nhận mẫu theo nhóm khách của hệ thống (xưởng đã ở gói đủ dùng mẫu đó;
     # xưởng gói thấp hơn giữ mẫu miễn phí — xem test_setup_theo_goi.py).
@@ -56,9 +56,9 @@ async def test_luu_va_ap_mac_dinh(client: AsyncClient, admin: Session, customer:
     )
     assert created.status_code == 201, created.text
     wedding = created.json()["data"]
-    assert wedding["group_templates"]["Họ hàng"] == "songhy"
-    assert wedding["group_templates"]["Bạn bè"] == "hongnhung"
-    assert wedding["default_template"] == "ngoctrai"
+    assert wedding["group_templates"]["Họ hàng"] == "dbsonmai"
+    assert wedding["group_templates"]["Bạn bè"] == "dbluadao"
+    assert wedding["default_template"] == "dbgomlam"
 
     # Web thiệp nhận kèm câu chữ mặc định.
     await client.put(
