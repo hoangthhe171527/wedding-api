@@ -6,6 +6,7 @@ import time
 from uuid import UUID
 
 from app.core.base_model import utc_now
+from app.modules.template.domain.catalog import canonical_template_key
 from app.modules.template.domain.defaults import CatalogDefaults
 from app.modules.template.infrastructure.persistence.models import CatalogDefaultsDocument
 
@@ -15,6 +16,19 @@ _KEY = "system"
 #: hạn. Lưu thì xoá ngay trong tiến trình đó; worker khác thấy bản mới sau tối đa TTL.
 _TTL_SECONDS = 60.0
 _cached: tuple[float, CatalogDefaults] | None = None
+
+
+def _canonical(defaults: CatalogDefaults) -> CatalogDefaults:
+    """Không để mặc định catalog cũ quay lại luồng tạo thiệp mới."""
+    return CatalogDefaults(
+        group_templates={
+            group: canonical_template_key(template)
+            for group, template in defaults.group_templates.items()
+        },
+        default_template=canonical_template_key(defaults.default_template),
+        wording={tone: dict(fields) for tone, fields in defaults.wording.items()},
+        messages=dict(defaults.messages),
+    )
 
 
 class BeanieCatalogDefaultsRepository:
@@ -31,14 +45,17 @@ class BeanieCatalogDefaultsRepository:
         doc = await CatalogDefaultsDocument.find_one({"key": _KEY})
         if doc is None:
             return CatalogDefaults()
-        return CatalogDefaults(
-            group_templates=dict(doc.group_templates),
-            default_template=doc.default_template,
-            wording={tone: dict(fields) for tone, fields in doc.wording.items()},
-            messages=dict(doc.messages),
+        return _canonical(
+            CatalogDefaults(
+                group_templates=dict(doc.group_templates),
+                default_template=doc.default_template,
+                wording={tone: dict(fields) for tone, fields in doc.wording.items()},
+                messages=dict(doc.messages),
+            )
         )
 
     async def save(self, defaults: CatalogDefaults, *, actor_id: UUID) -> CatalogDefaults:
+        defaults = _canonical(defaults)
         now = utc_now()
         await CatalogDefaultsDocument.get_motor_collection().update_one(
             {"key": _KEY},

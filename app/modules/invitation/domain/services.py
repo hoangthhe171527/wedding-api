@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Any, Final
 
 #: Mẫu lùi cuối cùng — đúng `effTpl()` của thiết kế.
-FALLBACK_TEMPLATE: Final[str] = "ngoctrai"
+FALLBACK_TEMPLATE: Final[str] = "dbgomlam"
 
 #: DANH SÁCH CHO PHÉP — chỉ những trường web thiệp thật sự vẽ mới lên trang công khai.
 #: Trường mới thêm vào đám cưới mặc định là RIÊNG TƯ cho tới khi được khai ở đây.

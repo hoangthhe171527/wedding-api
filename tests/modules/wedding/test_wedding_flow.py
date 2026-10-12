@@ -110,10 +110,10 @@ async def test_xuat_ban_va_mo_web_thiep(client: AsyncClient, customer: Session) 
     assert published.status_code == 200
     assert published.json()["data"]["site_url"].endswith("/invite/h-hoang-ha")
 
-    # Khách có mẫu theo nhóm "Họ hàng" -> Song Hỷ Đỏ Son.
+    # Khách có mẫu Độc bản theo nhóm "Họ hàng".
     uncle = (await client.get(f"{API}/public/invitations/h-hoang-ha?g={code}")).json()["data"]
     assert uncle["guest"]["name"] == "Hùng"
-    assert uncle["template"] == "songhy"
+    assert uncle["template"] == "dbsonmai"
     assert "note" not in uncle["guest"]
     assert "group" not in uncle["guest"]
     assert "messages" not in uncle["wedding"]
@@ -122,13 +122,13 @@ async def test_xuat_ban_va_mo_web_thiep(client: AsyncClient, customer: Session) 
     # Khách có mẫu riêng.
     trang = await guest_code(client, customer, "Thu Trang")
     friend = (await client.get(f"{API}/public/invitations/h-hoang-ha?g={trang}")).json()["data"]
-    assert friend["template"] == "xothom"
+    assert friend["template"] == "dbphohoi"
 
     # Mã sai: vẫn mở như link chung, không báo mã có thật hay không.
     general = await client.get(f"{API}/public/invitations/h-hoang-ha?g=zzzzzz")
     assert general.status_code == 200
     assert general.json()["data"]["guest"] is None
-    assert general.json()["data"]["template"] == "ngoctrai"
+    assert general.json()["data"]["template"] == "dbgomlam"
 
 
 async def test_tat_hop_mung_cuoi_thi_so_tai_khoan_khong_len_mang(

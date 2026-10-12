@@ -8,8 +8,11 @@ from app.modules.template import build_ensure_catalog
 from app.modules.template.domain.catalog import (
     DEFAULT_TEMPLATE_KEY,
     FREE_KEYS,
+    LEGACY_TEMPLATE_REPLACEMENTS,
+    ORIGINAL_TEMPLATE_KEYS,
     RETIRED_KEYS,
     TEMPLATE_BLUEPRINTS,
+    canonical_template_key,
 )
 from tests.conftest import API, Session
 
@@ -22,10 +25,17 @@ def test_chi_cho_nghi_mau_co_that_va_khong_dung_mau_mien_phi() -> None:
     assert all(reason.strip() for reason in RETIRED_KEYS.values())
 
 
-def test_moi_dong_mau_van_con_mau_de_chon() -> None:
-    families = {item.family for item in TEMPLATE_BLUEPRINTS}
-    alive = {item.family for item in TEMPLATE_BLUEPRINTS if item.key not in RETIRED_KEYS}
-    assert alive == families
+def test_catalog_cong_khai_chi_con_bo_doc_ban_tu_tao() -> None:
+    alive = {item.key for item in TEMPLATE_BLUEPRINTS if item.key not in RETIRED_KEYS}
+    assert alive == set(ORIGINAL_TEMPLATE_KEYS)
+    assert alive == FREE_KEYS
+
+
+def test_moi_khoa_cu_co_mau_doc_ban_thay_the() -> None:
+    assert set(LEGACY_TEMPLATE_REPLACEMENTS) == set(RETIRED_KEYS)
+    assert set(LEGACY_TEMPLATE_REPLACEMENTS.values()) <= set(ORIGINAL_TEMPLATE_KEYS)
+    assert canonical_template_key("songhy") in ORIGINAL_TEMPLATE_KEYS
+    assert canonical_template_key("dbgomlam") == "dbgomlam"
 
 
 async def test_khach_khong_thay_mau_nghi_quan_tri_van_thay(

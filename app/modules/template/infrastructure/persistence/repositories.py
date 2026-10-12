@@ -80,16 +80,23 @@ class BeanieTemplateRepository:
         return fixed
 
     async def retire(self, keys: frozenset[str]) -> int:
-        """Tắt mẫu cho nghỉ, MỘT lần: đánh dấu `retired` để lần sau không đụng lại.
+        """Tắt catalog cũ MỘT lần cho đợt chuyển sang bộ Độc bản 2026.
 
-        Đội vận hành bật lại mẫu thì giữ nguyên — seed không tắt lần nữa.
+        Marker riêng buộc cả mẫu từng chạy migration `retired` cũ được xử lý.
+        Sau đợt này đội vận hành bật lại thì seed vẫn giữ nguyên.
         """
         collection = TemplateDocument.get_motor_collection()
         retired = 0
         for key in sorted(keys):
             result = await collection.update_one(
-                {"key": key, "retired": {"$exists": False}},
-                {"$set": {"is_active": False, "retired": True, "updated_at": utc_now()}},
+                {"key": key, "exclusive_catalog_v1": {"$exists": False}},
+                {
+                    "$set": {
+                        "is_active": False,
+                        "exclusive_catalog_v1": True,
+                        "updated_at": utc_now(),
+                    }
+                },
             )
             retired += int(result.modified_count)
         return retired

@@ -24,16 +24,16 @@ from app.modules.wedding.domain.enums import EventKind, Side
 #: đều xuất bản được ngay. Trước đây mẫu gán sẵn mẫu trả phí — người dùng làm theo
 #: gợi ý rồi bị chặn ở bước xuất bản. Khoá bởi test_setup_mien_phi_xuat_ban_duoc.
 SAMPLE_GROUP_TEMPLATES: dict[str, str] = {
-    "Họ hàng": "songhy",
-    "Bạn bố mẹ": "hongphuc",
-    "Hàng xóm": "hongphuc",
-    "Thầy cô": "ngoctrai",
-    "Đồng nghiệp": "ngoctrai",
-    "Đối tác": "ngoctrai",
-    "Bạn bè": "maudon",
+    "Họ hàng": "dbsonmai",
+    "Bạn bố mẹ": "dbsenngoc",
+    "Hàng xóm": "dbsenngoc",
+    "Thầy cô": "dbgomlam",
+    "Đồng nghiệp": "dbtrucchi",
+    "Đối tác": "dbgomlam",
+    "Bạn bè": "dbluadao",
 }
 #: Mẫu của link chung (khách không mã) — trang trọng vừa phải, hợp mọi nhóm.
-SAMPLE_DEFAULT_TEMPLATE = "ngoctrai"
+SAMPLE_DEFAULT_TEMPLATE = "dbgomlam"
 
 
 #: Lịch trình mẫu của tiệc tối — cùng các mốc mà web thiệp mẫu thường dùng.

@@ -173,8 +173,71 @@ _SIGNATURE_BLUEPRINTS: Final[tuple[Template, ...]] = (
     _story("sgbachngoc", "Bạch Ngọc Song Nhẫn", Family.STORY_SIGNATURE, Tone.FORMAL),
 )
 
-#: Mẫu dùng được ở gói Miễn phí: năm mẫu cổ điển, mở bằng phong bì hoặc cuộn thư.
-FREE_KEYS: Final[frozenset[str]] = frozenset({"songhy", "hongphuc", "ngoctrai", "maudon", "xothom"})
+#: Bộ Độc bản 2026: khung minh hoạ alpha được sinh riêng cho Thiệp Hỷ; web giữ
+#: chữ, ảnh và các trường dữ liệu ở lớp riêng để sửa trực tiếp. Sáu khoá này là
+#: toàn bộ catalog được phép xuất hiện cho người dùng mới.
+_ORIGINAL_BLUEPRINTS: Final[tuple[Template, ...]] = (
+    _t(
+        "dbsonmai",
+        "Sơn Mài Phượng Hỷ",
+        Family.STORY_SIGNATURE,
+        Layout.MINIMAL,
+        Tone.FAMILY,
+        new=True,
+    ),
+    _t(
+        "dbgomlam",
+        "Gốm Lam Hỷ Duyên",
+        Family.STORY_SIGNATURE,
+        Layout.MINIMAL,
+        Tone.FORMAL,
+        new=True,
+    ),
+    _t(
+        "dbsenngoc",
+        "Sen Ngọc Bình Minh",
+        Family.STORY_SIGNATURE,
+        Layout.MINIMAL,
+        Tone.FAMILY,
+        new=True,
+    ),
+    _t(
+        "dbtrucchi",
+        "Trúc Chỉ An Hỷ",
+        Family.STORY_SIGNATURE,
+        Layout.TYPE,
+        Tone.FORMAL,
+        new=True,
+    ),
+    _t(
+        "dbphohoi",
+        "Phố Hội Dạ Quang",
+        Family.STORY_SIGNATURE,
+        Layout.TYPE,
+        Tone.FRIENDS,
+        new=True,
+    ),
+    _t(
+        "dbluadao",
+        "Lụa Đào Tơ Duyên",
+        Family.STORY_SIGNATURE,
+        Layout.MINIMAL,
+        Tone.FRIENDS,
+        new=True,
+    ),
+)
+
+ORIGINAL_TEMPLATE_KEYS: Final[tuple[str, ...]] = tuple(item.key for item in _ORIGINAL_BLUEPRINTS)
+
+#: Mọi mẫu Độc bản 2026 đều miễn phí để app không hiển thị mua gói/IAP. Thanh
+#: toán dịch vụ (nếu có) chỉ thực hiện trên web, tách khỏi luồng chọn mẫu iOS.
+FREE_KEYS: Final[frozenset[str]] = frozenset(ORIGINAL_TEMPLATE_KEYS)
+
+#: Năm mẫu cũ từng miễn phí vẫn giữ hạng để thiệp đã xuất bản không đột ngột bị
+#: chặn khi lưu lại. Chúng không còn được hiển thị trong catalog cho khách mới.
+_LEGACY_FREE_KEYS: Final[frozenset[str]] = frozenset(
+    {"songhy", "hongphuc", "ngoctrai", "maudon", "xothom"}
+)
 
 #: Dòng cần Gói Lộng Lẫy: hoạt hình 3D (three.js), cung đình (màn mở lộng lẫy) và Độc bản.
 PREMIUM_FAMILIES: Final[frozenset[Family]] = frozenset(
@@ -185,7 +248,7 @@ PREMIUM_KEYS: Final[frozenset[str]] = frozenset({"phaohoa", "dasao"})
 
 def tier_of(item: Template) -> Tier:
     """Hạng khởi tạo của một mẫu; đội vận hành đổi được sau đó."""
-    if item.key in FREE_KEYS:
+    if item.key in FREE_KEYS or item.key in _LEGACY_FREE_KEYS:
         return Tier.FREE
     if item.family in PREMIUM_FAMILIES or item.key in PREMIUM_KEYS:
         return Tier.PREMIUM
@@ -207,19 +270,24 @@ def _ordered(item: Template, sort_order: int) -> Template:
 
 #: Thứ tự hiển thị mặc định bước 10 để đội vận hành chèn mẫu vào giữa được. Bộ Tối giản
 #: đứng TRƯỚC (1, 2, 3...): seed chỉ tạo mẫu còn thiếu, không đổi thứ tự mẫu đã có.
+_LEGACY_BLUEPRINTS: Final[tuple[Template, ...]] = (
+    _SIGNATURE_BLUEPRINTS + _STORY_BLUEPRINTS + _MODERN_BLUEPRINTS + _BLUEPRINTS
+)
+
 TEMPLATE_BLUEPRINTS: Final[tuple[Template, ...]] = (
-    tuple(_ordered(item, 0) for item in _SIGNATURE_BLUEPRINTS)
+    tuple(_ordered(item, index + 1) for index, item in enumerate(_ORIGINAL_BLUEPRINTS))
+    + tuple(_ordered(item, 0) for item in _SIGNATURE_BLUEPRINTS)
     + tuple(_ordered(item, 0) for item in _STORY_BLUEPRINTS)
     + tuple(_ordered(item, index + 1) for index, item in enumerate(_MODERN_BLUEPRINTS))
 ) + tuple(_ordered(item, (index + 1) * 10) for index, item in enumerate(_BLUEPRINTS))
 
 #: Mẫu mặc định cho khách chung (link không mã), theo dữ liệu mẫu của thiết kế.
-DEFAULT_TEMPLATE_KEY: Final[str] = "uyenuong"
+DEFAULT_TEMPLATE_KEY: Final[str] = "dbgomlam"
 
 #: Mẫu cho nghỉ sau đợt rà bộ mẫu: trùng khuôn với mẫu khác (chỉ đổi màu) mà không có
 #: gì đẹp hơn, hoặc hiển thị lỗi. KHÔNG xoá: seed chỉ tắt `is_active` MỘT lần (đánh dấu
 #: `retired`) — thiệp đã dùng vẫn hiển thị, đội vận hành bật lại được và không bị tắt lại.
-RETIRED_KEYS: Final[dict[str, str]] = {
+_PREVIOUS_RETIRED_REASONS: Final[dict[str, str]] = {
     "stlongphungdo": "Khuôn phẳng, không ảnh; bản v2/v3/v4 đẹp hơn",
     "stlongphungxanh": "Trùng khuôn Long Phụng Đỏ, chỉ đổi màu",
     "stlongphunglam": "Trùng khuôn Long Phụng Đỏ, chỉ đổi màu",
@@ -248,4 +316,38 @@ RETIRED_KEYS: Final[dict[str, str]] = {
     "maycattuong": "Trùng Hồng Phúc, chỉ đổi màu nền",
 }
 
-__all__ = ["DEFAULT_TEMPLATE_KEY", "RETIRED_KEYS", "TEMPLATE_BLUEPRINTS"]
+#: Tất cả 134 mẫu cũ chỉ còn là renderer tương thích cho thiệp/link đã phát hành.
+#: Catalog công khai chỉ còn sáu mẫu có tài sản nguồn gốc rõ ràng ở trên.
+RETIRED_KEYS: Final[dict[str, str]] = {
+    item.key: _PREVIOUS_RETIRED_REASONS.get(
+        item.key,
+        "Mẫu tương thích cũ; đã thay bằng bộ Độc bản 2026 do Thiệp Hỷ tự tạo",
+    )
+    for item in _LEGACY_BLUEPRINTS
+}
+
+_ORIGINAL_BY_TONE: Final[dict[Tone, tuple[str, str]]] = {
+    Tone.FAMILY: ("dbsonmai", "dbsenngoc"),
+    Tone.FORMAL: ("dbgomlam", "dbtrucchi"),
+    Tone.FRIENDS: ("dbluadao", "dbphohoi"),
+}
+LEGACY_TEMPLATE_REPLACEMENTS: Final[dict[str, str]] = {
+    item.key: _ORIGINAL_BY_TONE[item.tone][index % 2]
+    for index, item in enumerate(_LEGACY_BLUEPRINTS)
+}
+
+
+def canonical_template_key(key: str) -> str:
+    """Đổi khoá cũ sang mẫu độc quyền gần nhất; giữ nguyên khoá mới/rỗng."""
+    return LEGACY_TEMPLATE_REPLACEMENTS.get(key, key)
+
+
+__all__ = [
+    "DEFAULT_TEMPLATE_KEY",
+    "FREE_KEYS",
+    "LEGACY_TEMPLATE_REPLACEMENTS",
+    "ORIGINAL_TEMPLATE_KEYS",
+    "RETIRED_KEYS",
+    "TEMPLATE_BLUEPRINTS",
+    "canonical_template_key",
+]

@@ -56,8 +56,8 @@ async def test_chua_dang_nhap_tra_401(client: AsyncClient, method: str, path: st
 async def test_ca_hai_vai_tro_xem_duoc_bo_mau(
     client: AsyncClient, admin: Session, customer: Session
 ) -> None:
-    # 122 mẫu + 12 mẫu Độc bản; khách không thấy 26 mẫu đã cho nghỉ.
-    for session, expected in ((admin, 134), (customer, 108)):
+    # Quản trị thấy 140 mẫu gồm 134 mẫu tương thích; khách chỉ thấy 6 mẫu tự tạo.
+    for session, expected in ((admin, 140), (customer, 6)):
         response = await client.get(f"{API}/templates", headers=session.headers)
         assert response.status_code == 200
         assert len(response.json()["data"]) == expected
