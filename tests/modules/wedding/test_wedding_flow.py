@@ -110,10 +110,10 @@ async def test_xuat_ban_va_mo_web_thiep(client: AsyncClient, customer: Session) 
     assert published.status_code == 200
     assert published.json()["data"]["site_url"].endswith("/invite/h-hoang-ha")
 
-    # Khách có mẫu Độc bản theo nhóm "Họ hàng".
+    # Khách có mẫu theo nhóm "Họ hàng" (mẫu duy nhất `daile`).
     uncle = (await client.get(f"{API}/public/invitations/h-hoang-ha?g={code}")).json()["data"]
     assert uncle["guest"]["name"] == "Hùng"
-    assert uncle["template"] == "dbsonmai"
+    assert uncle["template"] == "daile"
     assert "note" not in uncle["guest"]
     assert "group" not in uncle["guest"]
     assert "messages" not in uncle["wedding"]
@@ -122,13 +122,27 @@ async def test_xuat_ban_va_mo_web_thiep(client: AsyncClient, customer: Session) 
     # Khách có mẫu riêng.
     trang = await guest_code(client, customer, "Thu Trang")
     friend = (await client.get(f"{API}/public/invitations/h-hoang-ha?g={trang}")).json()["data"]
-    assert friend["template"] == "dbphohoi"
+    assert friend["template"] == "daile"
 
     # Mã sai: vẫn mở như link chung, không báo mã có thật hay không.
     general = await client.get(f"{API}/public/invitations/h-hoang-ha?g=zzzzzz")
     assert general.status_code == 200
     assert general.json()["data"]["guest"] is None
-    assert general.json()["data"]["template"] == "dbgomlam"
+    assert general.json()["data"]["template"] == "daile"
+
+    # Thiệp lưu từ trước bằng khoá đã nghỉ: vẫn lưu được, web thiệp vẽ bằng `daile`.
+    wedding = (await client.get(f"{API}/wedding", headers=customer.headers)).json()["data"]
+    meta = {"id", "slug", "published", "site_url", "checklist", "updated_at"}
+    content = {key: value for key, value in wedding.items() if key not in meta}
+    content["default_template"] = "dbgomlam"
+    content["group_templates"] = {"Họ hàng": "uyenuong"}
+    saved = await client.put(f"{API}/wedding", json=content, headers=customer.headers)
+    assert saved.status_code == 200, saved.text
+    legacy = (await client.get(f"{API}/public/invitations/h-hoang-ha")).json()["data"]
+    assert legacy["template"] == "daile"
+    assert legacy["wedding"]["default_template"] == "daile"
+    uncle = (await client.get(f"{API}/public/invitations/h-hoang-ha?g={code}")).json()["data"]
+    assert uncle["template"] == "daile"
 
 
 async def test_tat_hop_mung_cuoi_thi_so_tai_khoan_khong_len_mang(

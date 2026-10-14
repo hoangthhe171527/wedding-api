@@ -7,6 +7,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from app.modules.template.domain.catalog import canonical_template_key
 from app.modules.template.infrastructure.persistence.defaults_repository import (
     BeanieCatalogDefaultsRepository,
 )
@@ -23,13 +24,20 @@ class TemplateCatalogReader:
         return await self._templates.keys()
 
     async def tiers(self) -> dict[str, str]:
-        """Khoá mẫu -> slug hạng (`free`/`standard`/`premium`) — cho `billing`."""
-        return {key: tier.value for key, tier in (await self._templates.tiers()).items()}
+        """Khoá mẫu -> slug hạng (`free`/`standard`/`premium`) — cho `billing`.
+
+        Khoá đã nghỉ mang hạng của mẫu thay thế (`daile`): web thiệp vẽ mẫu thay thế,
+        nên xuất bản cũng chỉ xét gói theo mẫu được vẽ thật.
+        """
+        raw = await self._templates.tiers()
+        return {key: raw.get(canonical_template_key(key), tier).value for key, tier in raw.items()}
 
     async def names(self) -> dict[str, str]:
         """Khoá mẫu -> tên hiển thị — để câu báo "Mẫu “…” thuộc gói …" đọc được."""
         items = await self._templates.list_all(include_inactive=True)
-        return {item.key: item.name for item in items}
+        raw = {item.key: item.name for item in items}
+        # Khoá đã nghỉ mang tên mẫu được vẽ thật — khớp với `tiers()`.
+        return {key: raw.get(canonical_template_key(key), name) for key, name in raw.items()}
 
 
 class CatalogDefaultsReader:
@@ -47,6 +55,10 @@ class CatalogDefaultsReader:
             "wording": {tone: dict(fields) for tone, fields in item.wording.items()},
             "messages": dict(item.messages),
         }
+
+    def canonical_template(self, key: str) -> str:
+        """Khoá mẫu đã nghỉ -> mẫu thay thế (`daile`); khoá đang mở/rỗng giữ nguyên."""
+        return canonical_template_key(key)
 
 
 def build_catalog_defaults_reader() -> CatalogDefaultsReader:

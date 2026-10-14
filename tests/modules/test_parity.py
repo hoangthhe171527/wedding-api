@@ -45,3 +45,11 @@ def test_huong_dan_ai_du_moi_o_cau_chu_va_giong_van() -> None:
 
     assert set(FIELD_GUIDE) == set(wedding_enums.WORDING_KEYS)
     assert set(TONE_GUIDE) == {item.value for item in wedding_enums.Tone}
+
+
+def test_mau_lui_cua_web_thiep_trung_mau_mac_dinh() -> None:
+    from app.modules.invitation.domain.services import FALLBACK_TEMPLATE
+    from app.modules.template.domain.catalog import DEFAULT_TEMPLATE_KEY
+    from app.modules.wedding.domain.samples import SAMPLE_DEFAULT_TEMPLATE
+
+    assert FALLBACK_TEMPLATE == DEFAULT_TEMPLATE_KEY == SAMPLE_DEFAULT_TEMPLATE

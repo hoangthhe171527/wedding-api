@@ -136,6 +136,20 @@ async def buy_plan(client: AsyncClient, session: Session, plan: str = "premium")
     assert granted.status_code == 201, granted.text
 
 
+async def set_template_tier(client: AsyncClient, key: str, tier: str) -> None:
+    """Quản trị đổi hạng một mẫu. Catalog chỉ còn `daile` (miễn phí): bài nào cần
+    "mẫu trả phí" thì nâng hạng `daile` — khoá đã nghỉ tính theo hạng của `daile`."""
+    from app.seeds.seed import ADMIN_PASSWORD, ensure_admin
+
+    await build_ensure_default_roles().execute()
+    await ensure_admin()
+    operator = await login(client, "admin@thiephy.vn", ADMIN_PASSWORD)
+    changed = await client.patch(
+        f"{API}/templates/{key}", json={"tier": tier}, headers=operator.headers
+    )
+    assert changed.status_code == 200, changed.text
+
+
 @pytest.fixture
 async def customer(client: AsyncClient) -> Session:
     return await register(client, email="coupleA@example.com", name="Trần Huy Hoàng")

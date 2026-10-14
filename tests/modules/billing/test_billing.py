@@ -9,7 +9,7 @@ import pytest
 from httpx import AsyncClient
 
 from app.core.config import get_settings
-from tests.conftest import API, Session, buy_plan, guest_code
+from tests.conftest import API, Session, buy_plan, guest_code, set_template_tier
 
 WEBHOOK_KEY = "local-dev-webhook-key"
 
@@ -242,7 +242,7 @@ async def test_momo_ipn_sai_chu_ky_bi_tu_choi(client: AsyncClient) -> None:
 
 async def test_xuat_ban_bi_chan_khi_vuot_goi(client: AsyncClient, customer: Session) -> None:
     await _setup_sample(client, customer)
-    # Bản mẫu nằm gọn trong gói Miễn phí; tự chọn mẫu 3D + bật hộp mừng cưới thì vượt gói.
+    # Bản mẫu nằm gọn trong gói Miễn phí; bật hộp mừng cưới thì vượt gói.
     wedding = (await client.get(f"{API}/wedding", headers=customer.headers)).json()["data"]
     meta = {"id", "slug", "published", "site_url", "checklist", "updated_at"}
     content = {key: value for key, value in wedding.items() if key not in meta}
@@ -252,13 +252,19 @@ async def test_xuat_ban_bi_chan_khi_vuot_goi(client: AsyncClient, customer: Sess
     assert saved.status_code == 200, saved.text
 
     check = (await client.get(f"{API}/wedding/plan-check", headers=customer.headers)).json()
+    codes = {item["code"] for item in check["data"]["violations"]}
+    assert codes == {"gift"}, "mẫu 3D cũ đã nghỉ vẽ bằng `daile` miễn phí — không tính gói"
+
+    # Đội vận hành nâng `daile` lên Gói Lộng Lẫy: mọi khoá vẽ bằng `daile` đều vượt gói.
+    await set_template_tier(client, "daile", "premium")
+    check = (await client.get(f"{API}/wedding/plan-check", headers=customer.headers)).json()
     data = check["data"]
     assert data["plan"] == "free"
     assert data["required"] == "premium"
     codes = {item["code"] for item in data["violations"]}
     assert {"template", "gift"} <= codes
     subjects = {item["subject"] for item in data["violations"] if item["code"] == "template"}
-    assert subjects == {"uyenuong"}, "vi phạm mẫu chỉ rõ khoá mẫu để web gợi ý đổi"
+    assert subjects == {"daile", "uyenuong"}, "vi phạm mẫu chỉ rõ khoá mẫu để web gợi ý đổi"
 
     blocked = await client.put(
         f"{API}/wedding/publication",

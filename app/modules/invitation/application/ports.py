@@ -31,6 +31,10 @@ class WordingDefaults(Protocol):
 
     async def defaults(self) -> dict[str, Any]: ...
 
+    def canonical_template(self, key: str) -> str:
+        """Khoá mẫu đã nghỉ -> mẫu thay thế; khoá đang mở/rỗng giữ nguyên."""
+        ...
+
 
 class PhotoLister(Protocol):
     """URL ảnh đã ký theo thứ tự album (module `media`)."""

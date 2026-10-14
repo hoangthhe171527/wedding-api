@@ -227,16 +227,28 @@ _ORIGINAL_BLUEPRINTS: Final[tuple[Template, ...]] = (
     ),
 )
 
-ORIGINAL_TEMPLATE_KEYS: Final[tuple[str, ...]] = tuple(item.key for item in _ORIGINAL_BLUEPRINTS)
+#: Sáu khoá Độc bản 2026 — đã cho nghỉ, chỉ còn để thiệp/link đã gán vẫn hợp lệ.
+DOC_BAN_2026_KEYS: Final[tuple[str, ...]] = tuple(item.key for item in _ORIGINAL_BLUEPRINTS)
 
-#: Mọi mẫu Độc bản 2026 đều miễn phí để app không hiển thị mua gói/IAP. Thanh
-#: toán dịch vụ (nếu có) chỉ thực hiện trên web, tách khỏi luồng chọn mẫu iOS.
+#: Mẫu DUY NHẤT của catalog công khai: cung điện đỏ son – kim hoàng dựng 3D.
+#: Dòng "Cung đình lộng lẫy" (ROYAL) đúng chất hoàng cung; bố cục LUX là bố cục 3D
+#: (three.js) sẵn có — không cần thêm enum mới (web vẽ theo khoá `daile`).
+_DAILE_BLUEPRINT: Final[Template] = _t(
+    "daile", "Đại Lễ Hỷ Sự", Family.ROYAL, Layout.LUX, Tone.FAMILY, new=True
+)
+DAILE_TEMPLATE_KEY: Final[str] = _DAILE_BLUEPRINT.key
+
+#: Khoá mẫu đang mở cho khách — đúng một mẫu.
+ORIGINAL_TEMPLATE_KEYS: Final[tuple[str, ...]] = (DAILE_TEMPLATE_KEY,)
+
+#: Mẫu đang mở đều miễn phí để app không hiển thị mua gói/IAP. Thanh toán dịch vụ
+#: (nếu có) chỉ thực hiện trên web, tách khỏi luồng chọn mẫu iOS.
 FREE_KEYS: Final[frozenset[str]] = frozenset(ORIGINAL_TEMPLATE_KEYS)
 
-#: Năm mẫu cũ từng miễn phí vẫn giữ hạng để thiệp đã xuất bản không đột ngột bị
-#: chặn khi lưu lại. Chúng không còn được hiển thị trong catalog cho khách mới.
+#: Mẫu đã nghỉ nhưng vẫn giữ hạng Miễn phí để thiệp đã xuất bản không đột ngột bị chặn
+#: khi lưu lại: năm mẫu cũ từng miễn phí + sáu mẫu Độc bản 2026.
 _LEGACY_FREE_KEYS: Final[frozenset[str]] = frozenset(
-    {"songhy", "hongphuc", "ngoctrai", "maudon", "xothom"}
+    {"songhy", "hongphuc", "ngoctrai", "maudon", "xothom", *DOC_BAN_2026_KEYS}
 )
 
 #: Dòng cần Gói Lộng Lẫy: hoạt hình 3D (three.js), cung đình (màn mở lộng lẫy) và Độc bản.
@@ -274,15 +286,18 @@ _LEGACY_BLUEPRINTS: Final[tuple[Template, ...]] = (
     _SIGNATURE_BLUEPRINTS + _STORY_BLUEPRINTS + _MODERN_BLUEPRINTS + _BLUEPRINTS
 )
 
+#: `daile` đứng đầu (thứ tự 0) — mẫu duy nhất còn mở cho khách.
 TEMPLATE_BLUEPRINTS: Final[tuple[Template, ...]] = (
-    tuple(_ordered(item, index + 1) for index, item in enumerate(_ORIGINAL_BLUEPRINTS))
-    + tuple(_ordered(item, 0) for item in _SIGNATURE_BLUEPRINTS)
-    + tuple(_ordered(item, 0) for item in _STORY_BLUEPRINTS)
-    + tuple(_ordered(item, index + 1) for index, item in enumerate(_MODERN_BLUEPRINTS))
-) + tuple(_ordered(item, (index + 1) * 10) for index, item in enumerate(_BLUEPRINTS))
+    _ordered(_DAILE_BLUEPRINT, 0),
+    *(_ordered(item, index + 1) for index, item in enumerate(_ORIGINAL_BLUEPRINTS)),
+    *(_ordered(item, 0) for item in _SIGNATURE_BLUEPRINTS),
+    *(_ordered(item, 0) for item in _STORY_BLUEPRINTS),
+    *(_ordered(item, index + 1) for index, item in enumerate(_MODERN_BLUEPRINTS)),
+    *(_ordered(item, (index + 1) * 10) for index, item in enumerate(_BLUEPRINTS)),
+)
 
-#: Mẫu mặc định cho khách chung (link không mã), theo dữ liệu mẫu của thiết kế.
-DEFAULT_TEMPLATE_KEY: Final[str] = "dbgomlam"
+#: Mẫu mặc định cho khách chung (link không mã) — mẫu duy nhất.
+DEFAULT_TEMPLATE_KEY: Final[str] = DAILE_TEMPLATE_KEY
 
 #: Mẫu cho nghỉ sau đợt rà bộ mẫu: trùng khuôn với mẫu khác (chỉ đổi màu) mà không có
 #: gì đẹp hơn, hoặc hiển thị lỗi. KHÔNG xoá: seed chỉ tắt `is_active` MỘT lần (đánh dấu
@@ -316,34 +331,31 @@ _PREVIOUS_RETIRED_REASONS: Final[dict[str, str]] = {
     "maycattuong": "Trùng Hồng Phúc, chỉ đổi màu nền",
 }
 
-#: Tất cả 134 mẫu cũ chỉ còn là renderer tương thích cho thiệp/link đã phát hành.
-#: Catalog công khai chỉ còn sáu mẫu có tài sản nguồn gốc rõ ràng ở trên.
+_SINGLE_TEMPLATE_REASON: Final[str] = "Thay bằng mẫu duy nhất Đại Lễ Hỷ Sự"
+
+#: Mọi mẫu khác `daile` (sáu mẫu Độc bản 2026 + 134 mẫu cũ) chỉ còn là renderer
+#: tương thích cho thiệp/link đã phát hành; catalog công khai chỉ còn `daile`.
+#: Mẫu đã có lý do riêng từ đợt rà trước giữ lý do đó.
 RETIRED_KEYS: Final[dict[str, str]] = {
-    item.key: _PREVIOUS_RETIRED_REASONS.get(
-        item.key,
-        "Mẫu tương thích cũ; đã thay bằng bộ Độc bản 2026 do Thiệp Hỷ tự tạo",
-    )
-    for item in _LEGACY_BLUEPRINTS
+    item.key: _PREVIOUS_RETIRED_REASONS.get(item.key, _SINGLE_TEMPLATE_REASON)
+    for item in _ORIGINAL_BLUEPRINTS + _LEGACY_BLUEPRINTS
 }
 
-_ORIGINAL_BY_TONE: Final[dict[Tone, tuple[str, str]]] = {
-    Tone.FAMILY: ("dbsonmai", "dbsenngoc"),
-    Tone.FORMAL: ("dbgomlam", "dbtrucchi"),
-    Tone.FRIENDS: ("dbluadao", "dbphohoi"),
-}
-LEGACY_TEMPLATE_REPLACEMENTS: Final[dict[str, str]] = {
-    item.key: _ORIGINAL_BY_TONE[item.tone][index % 2]
-    for index, item in enumerate(_LEGACY_BLUEPRINTS)
-}
+#: Khoá đã nghỉ -> mẫu thay thế: tất cả về `daile`.
+LEGACY_TEMPLATE_REPLACEMENTS: Final[dict[str, str]] = dict.fromkeys(
+    RETIRED_KEYS, DAILE_TEMPLATE_KEY
+)
 
 
 def canonical_template_key(key: str) -> str:
-    """Đổi khoá cũ sang mẫu độc quyền gần nhất; giữ nguyên khoá mới/rỗng."""
+    """Đổi khoá đã nghỉ sang `daile`; giữ nguyên khoá đang mở, rỗng hoặc lạ."""
     return LEGACY_TEMPLATE_REPLACEMENTS.get(key, key)
 
 
 __all__ = [
+    "DAILE_TEMPLATE_KEY",
     "DEFAULT_TEMPLATE_KEY",
+    "DOC_BAN_2026_KEYS",
     "FREE_KEYS",
     "LEGACY_TEMPLATE_REPLACEMENTS",
     "ORIGINAL_TEMPLATE_KEYS",

@@ -4,8 +4,9 @@ from __future__ import annotations
 
 from typing import Any, Final
 
-#: Mẫu lùi cuối cùng — đúng `effTpl()` của thiết kế.
-FALLBACK_TEMPLATE: Final[str] = "dbgomlam"
+#: Mẫu lùi cuối cùng — mẫu duy nhất "Đại Lễ Hỷ Sự" (bản chép `DEFAULT_TEMPLATE_KEY`
+#: của `template`, §1.2).
+FALLBACK_TEMPLATE: Final[str] = "daile"
 
 #: DANH SÁCH CHO PHÉP — chỉ những trường web thiệp thật sự vẽ mới lên trang công khai.
 #: Trường mới thêm vào đám cưới mặc định là RIÊNG TƯ cho tới khi được khai ở đây.

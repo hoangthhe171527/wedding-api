@@ -17,23 +17,15 @@ from app.modules.wedding.domain.entities import (
     ScheduleItem,
     WeddingContent,
 )
-from app.modules.wedding.domain.enums import EventKind, Side
+from app.modules.wedding.domain.enums import GUEST_GROUPS, EventKind, Side
 
 #: Mẫu mặc định theo nhóm khách của dữ liệu mẫu thiết kế.
 #: Chỉ dùng mẫu của gói Miễn phí: xưởng mới (gói Miễn phí) lưu mẫu hay bắt đầu trống
 #: đều xuất bản được ngay. Trước đây mẫu gán sẵn mẫu trả phí — người dùng làm theo
 #: gợi ý rồi bị chặn ở bước xuất bản. Khoá bởi test_setup_mien_phi_xuat_ban_duoc.
-SAMPLE_GROUP_TEMPLATES: dict[str, str] = {
-    "Họ hàng": "dbsonmai",
-    "Bạn bố mẹ": "dbsenngoc",
-    "Hàng xóm": "dbsenngoc",
-    "Thầy cô": "dbgomlam",
-    "Đồng nghiệp": "dbtrucchi",
-    "Đối tác": "dbgomlam",
-    "Bạn bè": "dbluadao",
-}
-#: Mẫu của link chung (khách không mã) — trang trọng vừa phải, hợp mọi nhóm.
-SAMPLE_DEFAULT_TEMPLATE = "dbgomlam"
+#: Catalog chỉ còn một mẫu ("Đại Lễ Hỷ Sự", miễn phí) nên mọi nhóm đều dùng mẫu đó.
+SAMPLE_DEFAULT_TEMPLATE = "daile"
+SAMPLE_GROUP_TEMPLATES: dict[str, str] = dict.fromkeys(GUEST_GROUPS, SAMPLE_DEFAULT_TEMPLATE)
 
 
 #: Lịch trình mẫu của tiệc tối — cùng các mốc mà web thiệp mẫu thường dùng.

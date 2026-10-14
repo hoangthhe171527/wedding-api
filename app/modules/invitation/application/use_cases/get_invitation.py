@@ -98,14 +98,26 @@ class GetInvitation:
             default_template=str(snapshot.get("default_template") or ""),
             link=audience,
         )
+        # Khoá mẫu đã nghỉ (lưu từ trước) hiển thị bằng mẫu thay thế — kể cả các trường
+        # khoá mẫu web có thể đọc trong `wedding`/`guest`.
+        canonical = self._wording.canonical_template
+        wedding = public_wedding(snapshot)
+        if wedding.get("default_template"):
+            wedding["default_template"] = canonical(str(wedding["default_template"]))
+        design = wedding.get("card_design")
+        if isinstance(design, dict) and design.get("base"):
+            wedding["card_design"] = {**design, "base": canonical(str(design["base"]))}
+        shown_guest = public_guest(guest)
+        if shown_guest is not None and shown_guest.get("template"):
+            shown_guest["template"] = canonical(str(shown_guest["template"]))
         return Invitation(
-            wedding=for_audience(public_wedding(snapshot), audience),
+            wedding=for_audience(wedding, audience),
             photos=album["full"],
             photos_small=album["small"],
-            guest=public_guest(guest),
+            guest=shown_guest,
             link=str(audience["slug"]) if audience else "",
             greeting=str(audience.get("greeting") or "") if audience else "",
-            template=template,
+            template=canonical(template),
             branding={"badge": not plan.get("remove_badge"), "plan": plan.get("plan", "free")},
             defaults={
                 "wording": system.get("wording") or {},

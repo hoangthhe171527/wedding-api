@@ -11,6 +11,9 @@ from app.modules.template.domain.entities import Template
 from app.modules.template.domain.enums import Family, Layout, Tier, Tone
 from app.modules.template.infrastructure.persistence.models import TemplateDocument
 
+#: Dấu "đã qua đợt tắt mẫu duy nhất" trên document — đổi tên là chạy lại đợt tắt.
+_RETIRE_MARKER = "single_catalog_v1"
+
 
 def _template(doc: TemplateDocument) -> Template:
     return Template(
@@ -80,26 +83,18 @@ class BeanieTemplateRepository:
         return fixed
 
     async def retire(self, keys: frozenset[str]) -> int:
-        """Tắt catalog cũ MỘT lần cho đợt chuyển sang bộ Độc bản 2026.
+        """Tắt mọi mẫu khác `daile` MỘT lần cho đợt chuyển sang mẫu duy nhất.
 
-        Marker riêng buộc cả mẫu từng chạy migration `retired` cũ được xử lý.
-        Sau đợt này đội vận hành bật lại thì seed vẫn giữ nguyên.
+        Marker mới (`single_catalog_v1`) buộc xử lý lại cả mẫu đã qua đợt Độc bản
+        2026 (`exclusive_catalog_v1`): sáu mẫu `db*` chưa từng bị tắt, và mẫu cũ mà
+        đội vận hành từng bật lại. Sau đợt này đội vận hành bật lại thì seed vẫn
+        giữ nguyên.
         """
-        collection = TemplateDocument.get_motor_collection()
-        retired = 0
-        for key in sorted(keys):
-            result = await collection.update_one(
-                {"key": key, "exclusive_catalog_v1": {"$exists": False}},
-                {
-                    "$set": {
-                        "is_active": False,
-                        "exclusive_catalog_v1": True,
-                        "updated_at": utc_now(),
-                    }
-                },
-            )
-            retired += int(result.modified_count)
-        return retired
+        result = await TemplateDocument.get_motor_collection().update_many(
+            {"key": {"$in": sorted(keys)}, _RETIRE_MARKER: {"$exists": False}},
+            {"$set": {"is_active": False, _RETIRE_MARKER: True, "updated_at": utc_now()}},
+        )
+        return int(result.modified_count)
 
     async def tiers(self) -> dict[str, Tier]:
         """Khoá mẫu -> hạng, kể cả mẫu đã tắt (thiệp đã gán vẫn phải xét được)."""

@@ -7,10 +7,11 @@ from typing import Any
 
 from httpx import AsyncClient
 
-from tests.conftest import API, Session
+from tests.conftest import API, Session, set_template_tier
 from tests.modules.test_production_guards import _content
 
-PAID_TEMPLATE = "stsonghydo"  # mẫu Story, hạng Gói Hỷ
+#: Mẫu duy nhất; từng bài nâng nó lên Gói Hỷ để có "mẫu trả phí".
+PAID_TEMPLATE = "daile"
 
 
 async def _setup(client: AsyncClient, session: Session) -> dict[str, Any]:
@@ -38,6 +39,7 @@ async def test_quan_tri_xuat_ban_va_doi_sang_mau_tra_phi(
     )
     assert published.status_code == 200, published.text
 
+    await set_template_tier(client, PAID_TEMPLATE, "standard")
     content["default_template"] = PAID_TEMPLATE
     content["gift"]["show"] = True
     content["theme"] = {"accent": "#B8323F"}
@@ -58,6 +60,7 @@ async def test_khach_thuong_van_bi_chan_mau_tra_phi(client: AsyncClient, custome
         json={"slug": "thiep-khach", "published": True},
         headers=customer.headers,
     )
+    await set_template_tier(client, PAID_TEMPLATE, "standard")
     content["default_template"] = PAID_TEMPLATE
     blocked = await client.put(f"{API}/wedding", json=content, headers=customer.headers)
     assert blocked.status_code == 409

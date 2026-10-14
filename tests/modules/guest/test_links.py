@@ -7,7 +7,8 @@ from typing import Any
 from httpx import AsyncClient
 
 from app.modules.guest.domain.services import is_valid_link_slug, link_slug_from
-from tests.conftest import API, Session, buy_plan, guest_code
+from app.modules.invitation.domain.services import FALLBACK_TEMPLATE, effective_template
+from tests.conftest import API, Session, buy_plan, guest_code, set_template_tier
 
 LINKS = f"{API}/guests/links"
 PUBLIC = f"{API}/public/invitations/h-hoang-ha"
@@ -100,26 +101,41 @@ async def test_link_cua_xuong_khac_khong_dung_duoc(
     assert gone.status_code == 404
 
 
+def test_thu_tu_uu_tien_mau() -> None:
+    """Khách -> nhóm -> link đối tượng -> mặc định -> mẫu lùi (hàm thuần: catalog chỉ còn
+    một mẫu nên qua HTTP mọi nhánh đều ra `daile`, không phân biệt được)."""
+    pick = effective_template
+    groups = {"Họ hàng": "g"}
+    link = {"template": "l"}
+    assert pick(guest={"template": "k"}, group_templates=groups, default_template="d") == "k"
+    guest = {"group": "Họ hàng"}
+    assert pick(guest=guest, group_templates=groups, default_template="d", link=link) == "g"
+    assert pick(guest={}, group_templates=groups, default_template="d", link=link) == "l"
+    assert pick(guest=None, group_templates=groups, default_template="d") == "d"
+    assert pick(guest=None, group_templates={}, default_template="") == FALLBACK_TEMPLATE
+
+
 async def test_mo_link_doi_tuong_ra_dung_mau(client: AsyncClient, customer: Session) -> None:
     await _publish(client, customer)
     link = await _create(client, customer, name="Đồng nghiệp", template="noir")
 
     shared = (await client.get(PUBLIC)).json()["data"]
     audience = (await client.get(f"{PUBLIC}?link={link['slug']}")).json()["data"]
-    assert audience["template"] == "noir"
+    # Khoá đã nghỉ của link vẽ bằng mẫu duy nhất.
+    assert audience["template"] == "daile"
     assert audience["link"] == link["slug"]
     assert audience["guest"] is None
-    assert shared["template"] != "noir"
+    assert shared["template"] == "daile"
     assert shared["link"] == ""
     # Đuôi lạ mở như link chung, không báo lỗi (không cho dò đuôi nào có thật).
     unknown = (await client.get(f"{PUBLIC}?link=khong-co")).json()["data"]
     assert unknown["template"] == shared["template"]
     assert unknown["link"] == ""
-    # Link riêng của khách vẫn được ưu tiên hơn link đối tượng.
+    # Link riêng của khách vẫn mở được cùng link đối tượng.
     code = await guest_code(client, customer)
     both = (await client.get(f"{PUBLIC}?g={code}&link={link['slug']}")).json()["data"]
     assert both["guest"]["code"] == code
-    assert both["template"] != "noir"
+    assert both["template"] == "daile"
 
 
 async def test_luot_mo_va_phan_hoi_ghi_theo_link(client: AsyncClient, customer: Session) -> None:
@@ -161,6 +177,8 @@ async def test_goi_mien_phi_link_doi_tuong_mo_nhu_link_chung(
 async def test_mau_cua_link_tinh_vao_goi(client: AsyncClient, customer: Session) -> None:
     await client.post(f"{API}/wedding/setup", json={"mode": "sample"}, headers=customer.headers)
     await _create(client, customer, name="Đối tác", template="phaohoa")
+    # Khoá đã nghỉ tính theo hạng `daile`: nâng `daile` thì mẫu của link cũng vượt gói.
+    await set_template_tier(client, "daile", "premium")
     check = (await client.get(f"{API}/wedding/plan-check", headers=customer.headers)).json()
     subjects = {
         item["subject"] for item in check["data"]["violations"] if item["code"] == "template"
