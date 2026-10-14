@@ -39,6 +39,8 @@ class LinkInput:
     greeting: str = ""
     #: Id lễ tiệc nhóm được mời; rỗng = mọi lễ tiệc.
     events: tuple[str, ...] = ()
+    #: Video mở thiệp: rỗng = theo thiệp; `none` = không video; còn lại = id video.
+    intro: str = ""
 
     def fields(self) -> LinkFields:
         return LinkFields(
@@ -46,6 +48,7 @@ class LinkInput:
             template=self.template,
             greeting=self.greeting,
             events=self.events,
+            intro=self.intro,
         )
 
 
@@ -67,6 +70,7 @@ def _ensure_valid(data: LinkInput, slug: str, known: frozenset[str]) -> None:
         slug=slug,
         template=data.template,
         greeting=data.greeting,
+        intro=data.intro,
         known_templates=known,
     )
     if errors:

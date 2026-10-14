@@ -6,11 +6,16 @@ hardcode bộ nhãn.
 
 from __future__ import annotations
 
+from datetime import datetime
+from typing import Annotated
+
 from pydantic import BaseModel, Field
 
+from app.modules.template.application.use_cases import IntroView
 from app.modules.template.domain.defaults import CatalogDefaults
 from app.modules.template.domain.entities import Template
 from app.modules.template.domain.enums import FAMILY_LABELS, TIER_LABELS, TONE_LABELS, Tier
+from app.modules.template.domain.intros import INTRO_NAME_MAX
 
 
 class LabelOut(BaseModel):
@@ -55,7 +60,7 @@ class TemplatePatchIn(BaseModel):
     tier: Tier | None = None
 
 
-__all__ = ["LabelOut", "TemplateOut", "TemplatePatchIn"]
+__all__ = ["IntroOut", "IntroPatchIn", "LabelOut", "TemplateOut", "TemplatePatchIn"]
 
 
 class CatalogDefaultsIO(BaseModel):
@@ -82,3 +87,38 @@ class CatalogDefaultsIO(BaseModel):
             wording={tone: dict(fields) for tone, fields in item.wording.items()},
             messages=dict(item.messages),
         )
+
+
+class IntroOut(BaseModel):
+    """Một video mở thiệp. `url` đã ký, tự hết hạn — dùng thẳng trong `<video src>`."""
+
+    id: str
+    name: str
+    url: str
+    content_type: str
+    size: int
+    order: int
+    is_active: bool
+    created_at: datetime | None = None
+
+    @classmethod
+    def of(cls, view: IntroView) -> IntroOut:
+        item = view.intro
+        return cls(
+            id=str(item.id),
+            name=item.name,
+            url=view.url,
+            content_type=item.content_type,
+            size=item.size,
+            order=item.order,
+            is_active=item.is_active,
+            created_at=item.created_at,
+        )
+
+
+class IntroPatchIn(BaseModel):
+    """Chỉ gửi trường cần đổi."""
+
+    name: Annotated[str, Field(min_length=1, max_length=INTRO_NAME_MAX)] | None = None
+    is_active: bool | None = None
+    order: int | None = Field(default=None, ge=0, le=100_000)

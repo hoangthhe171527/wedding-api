@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from typing import ClassVar
+from uuid import UUID
 
 from pydantic import Field
 
@@ -50,6 +51,27 @@ class CatalogDefaultsDocument(BaseDocument):
         ]
 
 
-DOCUMENTS: list[type[Document]] = [TemplateDocument, CatalogDefaultsDocument]
+class IntroDocument(BaseDocument):
+    """Một video mở thiệp của thư viện chung — toàn hệ thống như `templates`.
 
-__all__ = ["DOCUMENTS", "CatalogDefaultsDocument", "TemplateDocument"]
+    Byte video nằm ở kho object S3, khoá `key`; Mongo chỉ giữ siêu dữ liệu.
+    """
+
+    name: str
+    key: str
+    content_type: str
+    size: int
+    order: int = 0
+    is_active: bool = True
+    created_by: UUID | None = None
+
+    class Settings(BaseDocument.Settings):
+        name = "intros"
+        indexes: ClassVar[list[IndexModel]] = [
+            IndexModel([("order", ASCENDING), ("created_at", ASCENDING)], name="ix_intros_order"),
+        ]
+
+
+DOCUMENTS: list[type[Document]] = [TemplateDocument, CatalogDefaultsDocument, IntroDocument]
+
+__all__ = ["DOCUMENTS", "CatalogDefaultsDocument", "IntroDocument", "TemplateDocument"]

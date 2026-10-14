@@ -102,6 +102,7 @@ class LinkFields:
     template: str = ""
     greeting: str = ""
     events: tuple[str, ...] = ()
+    intro: str = ""
 
 
 class LinkSlugTakenError(Exception):

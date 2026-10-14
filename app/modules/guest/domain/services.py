@@ -60,6 +60,9 @@ LINK_SLUG_MAX: Final[int] = 40
 _LINK_SLUG_RE: Final = re.compile(r"^[a-z0-9](?:[a-z0-9-]{0,38}[a-z0-9])$")
 LINK_NAME_MAX: Final[int] = 80
 LINK_GREETING_MAX: Final[int] = 120
+#: Link chọn "không video mở thiệp" (khác rỗng = theo video của thiệp).
+LINK_NO_INTRO: Final[str] = "none"
+_UUID_RE: Final = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$")
 
 
 def _ascii(text: str) -> str:
@@ -87,8 +90,13 @@ def validate_link(
     template: str,
     known_templates: frozenset[str],
     greeting: str = "",
+    intro: str = "",
 ) -> FieldErrors:
-    """Kiểm một link đối tượng. Rỗng là hợp lệ."""
+    """Kiểm một link đối tượng. Rỗng là hợp lệ.
+
+    `intro`: rỗng (theo thiệp), `none` (không video) hoặc id video dạng UUID — không
+    kiểm video còn tồn tại: web thiệp tự lùi về hiệu ứng cửa.
+    """
     errors: FieldErrors = {}
     if not name.strip():
         errors["name"] = ["Đặt tên để nhận ra link này gửi cho ai."]
@@ -102,6 +110,9 @@ def validate_link(
         errors["greeting"] = [f"Người được mời tối đa {LINK_GREETING_MAX} ký tự."]
     if template and template not in known_templates:
         errors["template"] = ["Mẫu thiệp không tồn tại."]
+    chosen = intro.strip().lower()
+    if chosen and chosen != LINK_NO_INTRO and not _UUID_RE.match(chosen):
+        errors["intro"] = ["Video mở thiệp không hợp lệ."]
     return errors
 
 
@@ -150,6 +161,7 @@ __all__ = [
     "CODE_LENGTH",
     "LINK_GREETING_MAX",
     "LINK_NAME_MAX",
+    "LINK_NO_INTRO",
     "LINK_SLUG_MAX",
     "FieldErrors",
     "generate_code",

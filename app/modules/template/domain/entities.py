@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import datetime
+from uuid import UUID
 
 from app.modules.template.domain.enums import Family, Layout, Tier, Tone
 
@@ -33,4 +35,26 @@ class Template:
     tier: Tier = Tier.STANDARD
 
 
-__all__ = ["Template"]
+@dataclass(frozen=True, slots=True)
+class Intro:
+    """Một video mở thiệp trong thư viện chung (đội vận hành tải lên).
+
+    Cặp đôi chọn một video làm mặc định cho thiệp, và đổi riêng cho từng link đối
+    tượng. Byte video nằm ở kho object (`key`), Mongo chỉ giữ siêu dữ liệu.
+
+    Attributes:
+        key: Khoá object trong kho S3 (`intros/<id>.mp4`).
+        is_active: Tắt thì khách không chọn được nữa; thiệp đã chọn vẫn phát.
+    """
+
+    id: UUID
+    name: str
+    key: str
+    content_type: str
+    size: int
+    order: int = 0
+    is_active: bool = True
+    created_at: datetime | None = None
+
+
+__all__ = ["Intro", "Template"]

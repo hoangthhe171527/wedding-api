@@ -219,6 +219,8 @@ class LinkIn(BaseModel):
     greeting: Annotated[str, Field(max_length=120)] = ""
     #: Id lễ tiệc nhóm này được mời; rỗng = mọi lễ tiệc.
     events: Annotated[list[EventId], Field(max_length=20)] = Field(default_factory=list)
+    #: Video mở thiệp: rỗng = theo thiệp; `none` = không video; còn lại = id video (`GET /intros`).
+    intro: Annotated[str, Field(max_length=64)] = ""
 
     def to_domain(self) -> LinkInput:
         return LinkInput(
@@ -227,6 +229,7 @@ class LinkIn(BaseModel):
             template=self.template,
             greeting=self.greeting,
             events=tuple(self.events),
+            intro=self.intro,
         )
 
 
@@ -239,6 +242,7 @@ class LinkOut(BaseModel):
     template: str
     greeting: str = ""
     events: list[str] = []
+    intro: str = ""
     opens: int
     last_opened_at: datetime | None = None
     created_at: datetime | None = None
@@ -252,6 +256,7 @@ class LinkOut(BaseModel):
             template=link.template,
             greeting=link.greeting,
             events=list(link.events),
+            intro=link.intro,
             opens=link.opens,
             last_opened_at=link.last_opened_at,
             created_at=link.created_at,

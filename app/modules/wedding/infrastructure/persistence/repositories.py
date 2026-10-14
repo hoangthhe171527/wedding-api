@@ -60,6 +60,7 @@ def _content_of(doc: WeddingDocument) -> WeddingContent:
             bride=BankAccount(**doc.gift.bride.model_dump()),
         ),
         music_url=doc.music_url,
+        intro=doc.intro,
         default_template=doc.default_template,
         group_templates=dict(doc.group_templates),
         wording={tone: dict(fields) for tone, fields in doc.wording.items()},

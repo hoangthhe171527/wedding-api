@@ -299,6 +299,7 @@ def _link(doc: InviteLinkDocument) -> InviteLink:
         template=doc.template,
         greeting=doc.greeting,
         events=tuple(doc.events),
+        intro=doc.intro,
         opens=doc.open_count,
         last_opened_at=doc.last_opened_at,
         created_at=doc.created_at,
@@ -312,6 +313,7 @@ def _link_fields(fields: LinkFields) -> dict[str, Any]:
         "greeting": fields.greeting.strip(),
         # Giữ thứ tự người soạn chọn, bỏ trùng.
         "events": list(dict.fromkeys(fields.events)),
+        "intro": fields.intro.strip().lower(),
     }
 
 

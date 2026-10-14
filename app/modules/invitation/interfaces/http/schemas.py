@@ -22,7 +22,8 @@ class InvitationOut(BaseModel):
 
     `wedding` cùng hình với `GET /wedding` (trừ trường nội bộ); `guest` là null
     khi mở link chung (hoặc gói chưa có link riêng); `template` là mẫu đã chọn
-    sẵn cho người mở link.
+    sẵn cho người mở link. `wedding.intro_url`: URL đã ký của video mở thiệp (theo
+    link đối tượng, rồi theo thiệp); rỗng = hiệu ứng cửa, không video.
     """
 
     wedding: dict[str, Any]

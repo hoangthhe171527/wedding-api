@@ -16,7 +16,7 @@ from app.modules.invitation.application.use_cases import (
     SubmitWish,
 )
 from app.modules.media import build_public_photo_lister
-from app.modules.template import build_catalog_defaults_reader
+from app.modules.template import build_catalog_defaults_reader, build_intro_url_reader
 from app.modules.wedding import build_published_wedding_reader
 
 
@@ -27,6 +27,7 @@ def provide_get_invitation() -> GetInvitation:
         build_public_photo_lister(),
         build_entitlement_reader(),
         build_catalog_defaults_reader(),
+        build_intro_url_reader(),
     )
 
 

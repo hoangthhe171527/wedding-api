@@ -83,6 +83,8 @@ class InviteLinkDocument(TenantScopedDocument):
     template: str = ""
     greeting: str = ""
     events: list[str] = Field(default_factory=list)
+    #: Video mở thiệp: rỗng = theo thiệp; `none` = không video; còn lại = id video.
+    intro: str = ""
     #: Lượt mở. Không đụng `updated_at`: mở thiệp không phải sửa link.
     open_count: int = 0
     last_opened_at: datetime | None = None

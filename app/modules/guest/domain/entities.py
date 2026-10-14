@@ -115,6 +115,8 @@ class InviteLink:
     template: str = ""
     greeting: str = ""
     events: tuple[str, ...] = ()
+    #: Video mở thiệp: rỗng = theo thiệp; `none` = không video; còn lại = id video.
+    intro: str = ""
     opens: int = 0
     last_opened_at: datetime | None = None
     created_at: datetime | None = None

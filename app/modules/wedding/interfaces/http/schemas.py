@@ -275,6 +275,8 @@ class WeddingContentIO(BaseModel):
     rsvp: RsvpIO = Field(default_factory=RsvpIO)
     gift: GiftIO = Field(default_factory=GiftIO)
     music_url: Url = ""
+    #: Id video mở thiệp (`GET /intros`); rỗng = hiệu ứng cửa, không video.
+    intro: Annotated[str, Field(max_length=64)] = ""
     default_template: Annotated[str, Field(max_length=40)] = ""
     group_templates: dict[str, Annotated[str, Field(max_length=40)]] = Field(default_factory=dict)
     wording: dict[str, dict[str, Line]] = Field(default_factory=dict)
@@ -301,6 +303,7 @@ class WeddingContentIO(BaseModel):
                 bride=self.gift.bride.to_domain(),
             ),
             music_url=self.music_url,
+            intro=self.intro.strip(),
             default_template=self.default_template,
             group_templates=dict(self.group_templates),
             wording={tone: dict(fields) for tone, fields in self.wording.items()},
@@ -332,6 +335,7 @@ class WeddingContentIO(BaseModel):
                 bride=BankAccountIO.of(content.gift.bride),
             ),
             music_url=content.music_url,
+            intro=content.intro,
             default_template=content.default_template,
             group_templates=dict(content.group_templates),
             wording={tone: dict(fields) for tone, fields in content.wording.items()},

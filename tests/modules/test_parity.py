@@ -53,3 +53,10 @@ def test_mau_lui_cua_web_thiep_trung_mau_mac_dinh() -> None:
     from app.modules.wedding.domain.samples import SAMPLE_DEFAULT_TEMPLATE
 
     assert FALLBACK_TEMPLATE == DEFAULT_TEMPLATE_KEY == SAMPLE_DEFAULT_TEMPLATE
+
+
+def test_link_khong_video_mo_thiep_trung_nhau() -> None:
+    from app.modules.guest.domain.services import LINK_NO_INTRO
+    from app.modules.invitation.domain.services import NO_INTRO
+
+    assert NO_INTRO == LINK_NO_INTRO

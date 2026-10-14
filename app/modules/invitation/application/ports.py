@@ -22,7 +22,7 @@ class GuestsByCode(Protocol):
     async def by_code(self, tenant_id: UUID, code: str) -> dict[str, Any] | None: ...
 
     async def by_link(self, tenant_id: UUID, slug: str) -> dict[str, Any] | None:
-        """`{"slug", "template"}` hoặc None nếu đuôi không có thật."""
+        """`{slug, template, greeting, events, intro}`; None nếu đuôi không có thật."""
         ...
 
 
@@ -41,6 +41,14 @@ class PhotoLister(Protocol):
 
     async def album(self, tenant_id: UUID) -> dict[str, list[str]]:
         """`{"full": [...], "small": [...]}` — cùng thứ tự, phần tử đầu là ảnh bìa."""
+        ...
+
+
+class IntroVideos(Protocol):
+    """Id video mở thiệp -> URL đã ký (module `template`)."""
+
+    async def url_of(self, intro_id: str) -> str:
+        """URL tuyệt đối; id rỗng / lạ / video đã xoá -> `""`."""
         ...
 
 
@@ -78,6 +86,7 @@ __all__ = [
     "Entitlements",
     "GuestReplies",
     "GuestsByCode",
+    "IntroVideos",
     "PhotoLister",
     "PublishedWeddings",
     "WordingDefaults",

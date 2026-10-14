@@ -19,11 +19,13 @@ from app.core.errors import NotFoundError
 from app.modules.invitation.application.ports import (
     Entitlements,
     GuestsByCode,
+    IntroVideos,
     PhotoLister,
     PublishedWeddings,
     WordingDefaults,
 )
 from app.modules.invitation.domain.services import (
+    effective_intro,
     effective_template,
     for_audience,
     public_guest,
@@ -66,12 +68,14 @@ class GetInvitation:
         photos: PhotoLister,
         entitlements: Entitlements,
         wording: WordingDefaults,
+        intros: IntroVideos,
     ) -> None:
         self._weddings = weddings
         self._guests = guests
         self._photos = photos
         self._entitlements = entitlements
         self._wording = wording
+        self._intros = intros
 
     async def execute(self, slug: str, code: str | None, link: str | None = None) -> Invitation:
         """`link` là đuôi link đối tượng (`/invite/<slug>/<đuôi>`); đuôi lạ mở như link chung.
@@ -110,8 +114,11 @@ class GetInvitation:
         shown_guest = public_guest(guest)
         if shown_guest is not None and shown_guest.get("template"):
             shown_guest["template"] = canonical(str(shown_guest["template"]))
+        # Video mở thiệp: id nằm trong snapshot (riêng tư); lên trang chỉ có URL đã ký.
+        intro = effective_intro(wedding_intro=str(snapshot.get("intro") or ""), link=audience)
+        intro_url = await self._intros.url_of(intro) if intro else ""
         return Invitation(
-            wedding=for_audience(wedding, audience),
+            wedding={**for_audience(wedding, audience), "intro_url": intro_url},
             photos=album["full"],
             photos_small=album["small"],
             guest=shown_guest,

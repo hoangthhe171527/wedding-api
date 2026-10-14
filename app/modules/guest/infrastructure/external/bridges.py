@@ -63,6 +63,7 @@ class GuestByCodeReader:
             "template": link.template,
             "greeting": link.greeting,
             "events": list(link.events),
+            "intro": link.intro,
         }
 
     async def by_code(self, tenant_id: UUID, code: str) -> dict[str, Any] | None:

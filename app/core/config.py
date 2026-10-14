@@ -112,6 +112,10 @@ class Settings(BaseSettings):
     #: xin URL mới; lộ URL thì cũng chỉ lộ đúng một tấm, và tự hết hạn.
     MEDIA_URL_TTL_SECONDS: Annotated[int, Field(ge=60, le=2_592_000)] = 604_800
 
+    # --- Video mở thiệp -----------------------------------------------------
+    #: Hạn mức một video mở thiệp (MP4/WebM) đội vận hành tải lên thư viện.
+    INTRO_MAX_BYTES: Annotated[int, Field(ge=100_000, le=500_000_000)] = 60_000_000
+
     # --- Địa chỉ công khai --------------------------------------------------
     #: Gốc web: link thiệp của khách là `<PUBLIC_WEB_URL>/invite/<slug>#<mã>`.
     PUBLIC_WEB_URL: str = "http://localhost:8091"

@@ -7,6 +7,8 @@ from typing import Any, Final
 #: Mẫu lùi cuối cùng — mẫu duy nhất "Đại Lễ Hỷ Sự" (bản chép `DEFAULT_TEMPLATE_KEY`
 #: của `template`, §1.2).
 FALLBACK_TEMPLATE: Final[str] = "daile"
+#: Link đối tượng chọn "không video" (bản chép `LINK_NO_INTRO` của `guest`, §1.2).
+NO_INTRO: Final[str] = "none"
 
 #: DANH SÁCH CHO PHÉP — chỉ những trường web thiệp thật sự vẽ mới lên trang công khai.
 #: Trường mới thêm vào đám cưới mặc định là RIÊNG TƯ cho tới khi được khai ở đây.
@@ -62,6 +64,17 @@ def effective_template(
     return default_template or FALLBACK_TEMPLATE
 
 
+def effective_intro(*, wedding_intro: str, link: dict[str, Any] | None = None) -> str:
+    """Video mở thiệp của link đối tượng -> video của thiệp. Rỗng = không video.
+
+    Link: rỗng = theo thiệp; `none` = link này không phát video (dù thiệp có).
+    """
+    chosen = str((link or {}).get("intro") or "").strip()
+    if not chosen:
+        chosen = wedding_intro.strip()
+    return "" if chosen == NO_INTRO else chosen
+
+
 def public_wedding(snapshot: dict[str, Any]) -> dict[str, Any]:
     """Bản công khai của đám cưới.
 
@@ -99,7 +112,9 @@ def public_guest(guest: dict[str, Any] | None) -> dict[str, Any] | None:
 
 __all__ = [
     "FALLBACK_TEMPLATE",
+    "NO_INTRO",
     "PUBLIC_WEDDING_KEYS",
+    "effective_intro",
     "effective_template",
     "for_audience",
     "public_guest",

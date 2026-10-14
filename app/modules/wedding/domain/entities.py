@@ -154,6 +154,8 @@ class WeddingContent:
     rsvp: Rsvp = field(default_factory=Rsvp)
     gift: Gift = field(default_factory=Gift)
     music_url: str = ""
+    #: Video mở thiệp (id trong thư viện `intros`); rỗng = hiệu ứng cửa, không video.
+    intro: str = ""
     default_template: str = ""
     group_templates: dict[str, str] = field(default_factory=dict)
     #: `{giọng văn: {ô câu chữ: nội dung}}` — ô bỏ trống dùng câu mặc định.

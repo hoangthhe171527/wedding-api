@@ -101,6 +101,24 @@ class ObjectStore:
 
         return await asyncio.to_thread(read)
 
+    async def get_range(self, key: str, offset: int, length: int) -> bytes | None:
+        """Đọc `length` byte từ vị trí `offset` — phục vụ HTTP Range (video)."""
+
+        def read() -> bytes | None:
+            try:
+                response = self._internal.get_object(self.bucket, key, offset=offset, length=length)
+            except S3Error as exc:
+                if exc.code in _MISSING:
+                    return None
+                raise
+            try:
+                return response.read()
+            finally:
+                response.close()
+                response.release_conn()
+
+        return await asyncio.to_thread(read)
+
     async def delete(self, key: str) -> None:
         """Xoá; object không tồn tại cũng coi là xong."""
         await asyncio.to_thread(self._internal.remove_object, self.bucket, key)

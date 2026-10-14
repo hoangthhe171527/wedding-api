@@ -28,6 +28,10 @@ _TIME_RE: Final = re.compile(r"^([01]\d|2[0-3]):[0-5]\d$")
 _SLUG_RE: Final = re.compile(r"^[a-z0-9](?:[a-z0-9-]{1,58}[a-z0-9])$")
 _URL_RE: Final = re.compile(r"^https?://\S+$", re.IGNORECASE)
 _HEX_RE: Final = re.compile(r"^#[0-9a-fA-F]{6}$")
+#: Id video mở thiệp (UUID). Không kiểm video còn tồn tại: web thiệp tự lùi về hiệu ứng cửa.
+_UUID_RE: Final = re.compile(
+    r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$", re.IGNORECASE
+)
 #: Chỉ ảnh raster dạng base64 — không nhận SVG hay URL ngoài (ảnh hiện thẳng trên web thiệp).
 _QR_RE: Final = re.compile(r"^data:image/(png|jpeg|webp);base64,[A-Za-z0-9+/]+=*$")
 
@@ -96,6 +100,8 @@ def validate_content(content: WeddingContent, *, known_templates: frozenset[str]
         add("rsvp.deadline", "Ngày không đúng định dạng yyyy-mm-dd.")
     if content.music_url and not _URL_RE.match(content.music_url):
         add("music_url", "Link nhạc nền phải bắt đầu bằng http:// hoặc https://.")
+    if content.intro and not _UUID_RE.match(content.intro):
+        add("intro", "Video mở thiệp không hợp lệ.")
 
     if content.default_template and content.default_template not in known_templates:
         add("default_template", "Mẫu thiệp không tồn tại.")

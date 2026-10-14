@@ -142,6 +142,8 @@ class WeddingDocument(TenantScopedDocument):
     rsvp: RsvpModel = Field(default_factory=RsvpModel)
     gift: GiftModel = Field(default_factory=GiftModel)
     music_url: str = ""
+    #: Video mở thiệp (id trong thư viện `intros`); rỗng = hiệu ứng cửa, không video.
+    intro: str = ""
     default_template: str = ""
     group_templates: dict[str, str] = Field(default_factory=dict)
     wording: dict[str, dict[str, str]] = Field(default_factory=dict)
