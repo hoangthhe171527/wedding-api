@@ -88,13 +88,15 @@ def violations(
                 )
             )
 
-    if usage.open_style not in spec.open_styles:
+    for style in sorted(usage.open_styles | {usage.open_style}):
+        if style in spec.open_styles:
+            continue
         needed = min(
-            (item for item in Plan if usage.open_style in PLAN_SPECS[item].open_styles),
+            (item for item in Plan if style in PLAN_SPECS[item].open_styles),
             key=lambda item: PLAN_RANK[item],
             default=Plan.PREMIUM,
         )
-        label = _OPEN_STYLE_LABELS.get(usage.open_style, usage.open_style)
+        label = _OPEN_STYLE_LABELS.get(style, style)
         found.append(
             Violation(
                 code="open_style",

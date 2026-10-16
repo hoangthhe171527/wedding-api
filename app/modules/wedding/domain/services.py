@@ -4,11 +4,13 @@ from __future__ import annotations
 
 import re
 import unicodedata
+from collections.abc import Callable
 from datetime import date
 from typing import Final
 
 from app.modules.wedding.domain.design import validate_design
-from app.modules.wedding.domain.entities import WeddingContent
+from app.modules.wedding.domain.designs import MAX_DESIGNS, legacy_design, main_design, main_key
+from app.modules.wedding.domain.entities import TemplateDesign, WeddingContent
 from app.modules.wedding.domain.enums import (
     CHECKLIST_IDS,
     GUEST_GROUPS,
@@ -49,6 +51,43 @@ def _is_iso_date(value: str) -> bool:
     except ValueError:
         return False
     return True
+
+
+def _validate_look(
+    prefix: str,
+    look: TemplateDesign,
+    *,
+    known_templates: frozenset[str],
+    add: Callable[[str, str], None],
+) -> None:
+    """Kiểm phần nhìn (theme, thiệp tự thiết kế, video, nhạc). `prefix` rỗng = trường cũ."""
+    theme = look.theme
+    for name in ("accent", "accent2", "ink", "intro", "intro2"):
+        value = getattr(theme, name)
+        if value and not _HEX_RE.match(value):
+            add(f"{prefix}theme.{name}", "Màu phải có dạng #RRGGBB.")
+    for name in ("font_display", "font_script", "font_body"):
+        value = getattr(theme, name)
+        if value and value not in THEME_FONTS:
+            add(f"{prefix}theme.{name}", "Font không có trong danh sách.")
+    if theme.ambient and theme.ambient not in THEME_AMBIENTS:
+        add(f"{prefix}theme.ambient", "Hiệu ứng nền không tồn tại.")
+    low, high = THEME_DENSITY_RANGE
+    if theme.density and not low <= theme.density <= high:
+        add(f"{prefix}theme.density", f"Mật độ từ {low} đến {high}.")
+    for name in ("sections", "hidden"):
+        keys = getattr(theme, name)
+        if any(key not in SITE_SECTIONS for key in keys) or len(set(keys)) != len(keys):
+            add(f"{prefix}theme.{name}", "Danh sách phần của web thiệp không hợp lệ.")
+    if look.music_url and not _URL_RE.match(look.music_url):
+        add(f"{prefix}music_url", "Link nhạc nền phải bắt đầu bằng http:// hoặc https://.")
+    if look.intro and not _UUID_RE.match(look.intro):
+        add(f"{prefix}intro", "Video mở thiệp không hợp lệ.")
+    for path, messages in validate_design(
+        look.card_design, known_templates=known_templates
+    ).items():
+        for message in messages:
+            add(f"{prefix}{path}", message)
 
 
 def validate_content(content: WeddingContent, *, known_templates: frozenset[str]) -> FieldErrors:
@@ -98,10 +137,6 @@ def validate_content(content: WeddingContent, *, known_templates: frozenset[str]
         add("rsvp.url", "Link xác nhận phải bắt đầu bằng http:// hoặc https://.")
     if content.rsvp.deadline and not _is_iso_date(content.rsvp.deadline):
         add("rsvp.deadline", "Ngày không đúng định dạng yyyy-mm-dd.")
-    if content.music_url and not _URL_RE.match(content.music_url):
-        add("music_url", "Link nhạc nền phải bắt đầu bằng http:// hoặc https://.")
-    if content.intro and not _UUID_RE.match(content.intro):
-        add("intro", "Video mở thiệp không hợp lệ.")
 
     if content.default_template and content.default_template not in known_templates:
         add("default_template", "Mẫu thiệp không tồn tại.")
@@ -123,55 +158,40 @@ def validate_content(content: WeddingContent, *, known_templates: frozenset[str]
         if tone not in tones:
             add("messages", f"Giọng văn “{tone}” không tồn tại.")
 
-    theme = content.theme
-    for name in ("accent", "accent2", "ink", "intro", "intro2"):
-        value = getattr(theme, name)
-        if value and not _HEX_RE.match(value):
-            add(f"theme.{name}", "Màu phải có dạng #RRGGBB.")
-    for name in ("font_display", "font_script", "font_body"):
-        value = getattr(theme, name)
-        if value and value not in THEME_FONTS:
-            add(f"theme.{name}", "Font không có trong danh sách.")
-    if theme.ambient and theme.ambient not in THEME_AMBIENTS:
-        add("theme.ambient", "Hiệu ứng nền không tồn tại.")
-    low, high = THEME_DENSITY_RANGE
-    if theme.density and not low <= theme.density <= high:
-        add("theme.density", f"Mật độ từ {low} đến {high}.")
-    for name in ("sections", "hidden"):
-        keys = getattr(theme, name)
-        if any(key not in SITE_SECTIONS for key in keys) or len(set(keys)) != len(keys):
-            add(f"theme.{name}", "Danh sách phần của web thiệp không hợp lệ.")
-    for path, messages in validate_design(
-        content.card_design, known_templates=known_templates
-    ).items():
-        for message in messages:
-            add(path, message)
+    _validate_look("", legacy_design(content), known_templates=known_templates, add=add)
+    if len(content.designs) > MAX_DESIGNS:
+        add("designs", f"Tối đa {MAX_DESIGNS} mẫu được thiết kế riêng.")
+    for key, look in content.designs.items():
+        if key not in known_templates:
+            add(f"designs.{key}", "Mẫu thiệp không tồn tại.")
+            continue
+        _validate_look(f"designs.{key}.", look, known_templates=known_templates, add=add)
     return errors
 
 
 def plan_usage(
-    content: WeddingContent, *, guest_count: int, guest_templates: set[str], groups: set[str]
+    content: WeddingContent, *, guest_count: int, guest_templates: set[str]
 ) -> dict[str, object]:
     """Những gì đám cưới này đang dùng, dạng dữ liệu thuần gửi sang `billing`.
 
-    Mẫu đang dùng = mẫu mặc định (link chung) + mẫu của những NHÓM đang có khách
-    + mẫu gán riêng cho từng khách. Mẫu của nhóm không có khách nào không tính:
-    không ai nhìn thấy nó.
+    Mẫu đang dùng = mẫu chính (link chung) + mẫu của các link (khách thấy qua link).
+    Phần nhìn tính trên design của CHÍNH những mẫu đó — design của mẫu không ai
+    thấy thì không tính.
     """
-    templates = set(guest_templates)
-    if content.default_template:
-        templates.add(content.default_template)
-    templates.update(
-        key for group, key in content.group_templates.items() if group in groups and key
-    )
+    main = main_key(content)
+    templates = {main, *(key for key in guest_templates if key)}
+    looks = [main_design(content)] + [
+        content.designs[key] for key in sorted(templates) if key != main and key in content.designs
+    ]
     return {
         "templates": sorted(templates),
-        "open_style": content.open_style.value,
+        "open_style": main_design(content).open_style.value,
+        "open_styles": sorted({look.open_style.value for look in looks}),
         "guest_count": guest_count,
-        "music": bool(content.music_url),
+        "music": any(look.music_url for look in looks),
         "gift": content.gift.show,
-        "theme": content.theme.customized,
-        "design": content.card_design.enabled,
+        "theme": any(look.theme.customized for look in looks),
+        "design": any(look.card_design.enabled for look in looks),
     }
 
 

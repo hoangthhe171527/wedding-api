@@ -50,7 +50,6 @@ async def check_plan(wedding: Wedding, guests: GuestUsage, gate: PlanGate) -> di
         wedding.content,
         guest_count=int(used.get("count", 0)),
         guest_templates=set(used.get("templates", [])),
-        groups=set(used.get("groups", [])),
     )
     return await gate.check(wedding.tenant_id, usage)
 
