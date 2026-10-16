@@ -70,11 +70,15 @@ infrastructure → interfaces`):
 | `access`     | `roles`, `role_assignments`              |
 | `template`   | `templates` (46 mẫu, kèm hạng gói), `catalog_defaults` (mẫu theo nhóm khách + câu chữ mặc định do admin đặt) |
 | `wedding`    | `weddings` (một đám cưới mỗi xưởng)      |
-| `guest`      | `guests` (mã link riêng 6 ký tự), `guest_wishes` (phản hồi, lời chúc từ web thiệp), `guest_links` (link theo đối tượng) |
+| `guest`      | `guests` (mã link riêng 6 ký tự, `link` = link khách thuộc về), `guest_wishes`, `guest_links` (link gửi khách: mẫu, lời mời, lễ tiệc) |
 | `media`      | `photos` (siêu dữ liệu); byte ảnh ở kho object S3 qua `app/core/storage.py` (`photo_blobs` chỉ còn cho ảnh cũ chưa chuyển) |
 | `billing`    | `orders`, `payment_events` (gói, thanh toán, đối soát) |
 | `printing`   | `print_requests` (yêu cầu in thiệp giấy; báo giá qua Zalo) |
 | `invitation` | Không sở hữu dữ liệu — web thiệp công khai; phản hồi của khách ghi qua cầu nối của `guest` |
+
+Phần nhìn của thiệp lưu theo mẫu (`weddings.designs`); `theme`/`card_design`/`intro`/`open_style`/`music_url` là bản phản chiếu design mẫu chính cho client cũ (`app/modules/wedding/domain/designs.py`). Khoá bởi: `tests/modules/wedding/test_designs_domain.py`.
+
+Khách thuộc một link (`guests.link`); web thiệp chọn mẫu: link của khách -> link trên URL -> mẫu chính (`app/modules/invitation/domain/services.py::effective_template`). Chuyển đổi dữ liệu cũ: `app/seeds/migrate_links_designs.py` (chạy lúc khởi động).
 
 Module khác chỉ vào qua **barrel** `app.modules.<x>`; module sở hữu dữ liệu tự
 viết cầu nối trong `infrastructure/external/` và trả **dữ liệu thuần** (không trả
