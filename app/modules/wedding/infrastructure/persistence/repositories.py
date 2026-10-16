@@ -28,7 +28,7 @@ from app.modules.wedding.domain.entities import (
 )
 from app.modules.wedding.domain.enums import EventKind, OpenStyle, Side
 from app.modules.wedding.domain.repositories import SlugTakenError, WeddingAlreadyExistsError
-from app.modules.wedding.infrastructure.persistence.models import WeddingDocument
+from app.modules.wedding.infrastructure.persistence.models import SCHEMA_VERSION, WeddingDocument
 
 
 def _theme_of(model: Any) -> Theme:
@@ -157,7 +157,12 @@ class BeanieWeddingRepository:
     async def create(
         self, *, tenant_id: UUID, content: WeddingContent, slug: str, actor_id: UUID | None
     ) -> Wedding:
-        doc = WeddingDocument(tenant_id=tenant_id, slug=slug, **_content_fields(content))
+        doc = WeddingDocument(
+            tenant_id=tenant_id,
+            slug=slug,
+            schema_version=SCHEMA_VERSION,
+            **_content_fields(content),
+        )
         doc.stamp_created(actor_id)
         try:
             await doc.insert()

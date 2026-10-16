@@ -32,6 +32,11 @@ class ParentsModel(BaseModel):
     address: str = ""
 
 
+#: 1 = da chuyen sang design theo mau + khach theo link (migrate_links_designs).
+#: Dam cuoi tao moi ghi thang gia tri nay; tai lieu cu mang 0 (mac dinh) de duoc chuyen.
+SCHEMA_VERSION: int = 1
+
+
 class EventModel(BaseModel):
     id: str
     name: str = ""
@@ -193,6 +198,7 @@ DOCUMENTS: list[type[Document]] = [WeddingDocument]
 
 __all__ = [
     "DOCUMENTS",
+    "SCHEMA_VERSION",
     "BankAccountModel",
     "EventModel",
     "GiftModel",
