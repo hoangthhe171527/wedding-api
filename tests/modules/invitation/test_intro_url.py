@@ -48,11 +48,9 @@ async def _set_intro(client: AsyncClient, session: Session, intro: str) -> dict[
 
 
 def test_thu_tu_chon_video() -> None:
-    assert effective_intro(wedding_intro="w") == "w"
-    assert effective_intro(wedding_intro="w", link={"intro": ""}) == "w"
-    assert effective_intro(wedding_intro="w", link={"intro": "l"}) == "l"
-    assert effective_intro(wedding_intro="w", link={"intro": "none"}) == ""
-    assert effective_intro(wedding_intro="", link=None) == ""
+    assert effective_intro("w") == "w"
+    assert effective_intro("none") == ""
+    assert effective_intro("") == ""
 
 
 async def test_luu_va_doc_video_cua_thiep(client: AsyncClient, customer: Session) -> None:
@@ -111,17 +109,15 @@ async def test_web_thiep_nhan_url_video_theo_link(
     await _set_intro(client, customer, first)
     follow = await _create(client, customer, name="Theo thiệp")
     own = await _create(client, customer, name="Video riêng", intro=second)
-    off = await _create(client, customer, name="Không video", intro="none")
 
     page = (await client.get(PUBLIC)).json()["data"]
     assert f"/media/intros/{first}?" in page["wedding"]["intro_url"]
     assert page["wedding"]["intro_url"].startswith("http")
     assert "intro" not in page["wedding"], "id video là dữ liệu nội bộ, chỉ URL lên trang"
-    for link, expected in ((follow, first), (own, second)):
+    # Video theo design của mẫu: intro riêng của link không còn đè video của thiệp.
+    for link in (follow, own):
         seen = (await client.get(f"{PUBLIC}?link={link['slug']}")).json()["data"]
-        assert f"/media/intros/{expected}?" in seen["wedding"]["intro_url"]
-    silent = (await client.get(f"{PUBLIC}?link={off['slug']}")).json()["data"]
-    assert silent["wedding"]["intro_url"] == ""
+        assert f"/media/intros/{first}?" in seen["wedding"]["intro_url"]
 
     # URL trên web thiệp phát được.
     url = page["wedding"]["intro_url"]
@@ -133,4 +129,4 @@ async def test_web_thiep_nhan_url_video_theo_link(
     page = (await client.get(PUBLIC)).json()["data"]
     assert page["wedding"]["intro_url"] == ""
     seen = (await client.get(f"{PUBLIC}?link={own['slug']}")).json()["data"]
-    assert f"/media/intros/{second}?" in seen["wedding"]["intro_url"]
+    assert seen["wedding"]["intro_url"] == ""

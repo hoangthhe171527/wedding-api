@@ -22,7 +22,7 @@ class GuestsByCode(Protocol):
     async def by_code(self, tenant_id: UUID, code: str) -> dict[str, Any] | None: ...
 
     async def by_link(self, tenant_id: UUID, slug: str) -> dict[str, Any] | None:
-        """`{slug, template, greeting, events, intro}`; None nếu đuôi không có thật."""
+        """`{slug, template, greeting, events}`; None nếu đuôi không có thật."""
         ...
 
 

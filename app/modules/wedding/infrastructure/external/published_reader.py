@@ -48,6 +48,10 @@ class PublishedWeddingReader:
             for event in snapshot["events"]
         ]
         snapshot["open_style"] = str(snapshot["open_style"])
+        snapshot["designs"] = {
+            key: {**look, "open_style": str(look["open_style"])}
+            for key, look in snapshot.get("designs", {}).items()
+        }
         snapshot["slug"] = wedding.slug
         snapshot["site_url"] = site_url(wedding.slug)
         await cache.set_json(

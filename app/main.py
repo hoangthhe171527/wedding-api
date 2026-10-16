@@ -29,6 +29,7 @@ from app.core.storage import get_object_store
 from app.models_registry import MODULE_NAMES, collection_names
 from app.modules.access import build_ensure_default_roles
 from app.modules.template import build_ensure_catalog
+from app.seeds.migrate_links_designs import run as migrate_links_designs
 
 log = get_logger(__name__)
 
@@ -83,6 +84,10 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     # tạo bằng `python -m app.seeds.bootstrap_admin`, không tạo ở đây.
     await build_ensure_default_roles().execute()
     await build_ensure_catalog().execute()
+    # Chuyển đổi một lần (idempotent): design theo mẫu + khách theo link.
+    migrated = await migrate_links_designs()
+    if migrated["weddings"] or migrated["failed"]:
+        log.info("links_designs_migrated_on_startup", **migrated)
     yield
     await close_redis()
     await close_database()

@@ -30,6 +30,8 @@ class GuestDraft:
     events: tuple[str, ...] = ()
     count: int = 1
     template: str = ""
+    #: Id link khách thuộc về (mẫu, lời mời, lễ tiệc theo link); rỗng = chưa xếp link.
+    link: str = ""
     status: RsvpStatus = RsvpStatus.NONE
     sent: bool = False
     note: str = ""
@@ -120,6 +122,9 @@ class InviteLink:
     opens: int = 0
     last_opened_at: datetime | None = None
     created_at: datetime | None = None
+    #: Số khách đang thuộc link và số khách đã phản hồi — chỉ có khi liệt kê.
+    guest_count: int = 0
+    reply_count: int = 0
 
 
 __all__ = ["Guest", "GuestDraft", "GuestReply", "InviteLink", "Wish"]

@@ -250,6 +250,7 @@ async def test_xuat_ban_bi_chan_khi_vuot_goi(client: AsyncClient, customer: Sess
     content["gift"]["show"] = True
     saved = await client.put(f"{API}/wedding", json=content, headers=customer.headers)
     assert saved.status_code == 200, saved.text
+    assert saved.json()["data"]["default_template"] == "daile", "mẫu đã nghỉ lưu theo khoá chuẩn"
 
     check = (await client.get(f"{API}/wedding/plan-check", headers=customer.headers)).json()
     codes = {item["code"] for item in check["data"]["violations"]}
@@ -264,7 +265,7 @@ async def test_xuat_ban_bi_chan_khi_vuot_goi(client: AsyncClient, customer: Sess
     codes = {item["code"] for item in data["violations"]}
     assert {"template", "gift"} <= codes
     subjects = {item["subject"] for item in data["violations"] if item["code"] == "template"}
-    assert subjects == {"daile", "uyenuong"}, "vi phạm mẫu chỉ rõ khoá mẫu để web gợi ý đổi"
+    assert subjects == {"daile"}, "vi phạm mẫu chỉ rõ khoá mẫu để web gợi ý đổi"
 
     blocked = await client.put(
         f"{API}/wedding/publication",

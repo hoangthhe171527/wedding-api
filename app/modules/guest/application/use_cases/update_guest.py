@@ -11,10 +11,10 @@ from uuid import UUID
 
 from app.core.context import ActorContext
 from app.modules.guest.application.ports import TemplateCatalog
-from app.modules.guest.application.support import ensure_valid, guest_not_found
+from app.modules.guest.application.support import ensure_link, ensure_valid, guest_not_found
 from app.modules.guest.domain.entities import Guest
 from app.modules.guest.domain.enums import RsvpStatus, Side
-from app.modules.guest.domain.repositories import GuestRepository
+from app.modules.guest.domain.repositories import GuestRepository, InviteLinkRepository
 
 
 @dataclass(frozen=True, slots=True)
@@ -29,6 +29,7 @@ class GuestPatch:
     events: tuple[str, ...] | None = None
     count: int | None = None
     template: str | None = None
+    link: str | None = None
     status: RsvpStatus | None = None
     sent: bool | None = None
     note: str | None = None
@@ -37,9 +38,12 @@ class GuestPatch:
 class UpdateGuest:
     """Vá thiệp mời trong phạm vi xưởng của actor; ngoài phạm vi -> 404."""
 
-    def __init__(self, guests: GuestRepository, templates: TemplateCatalog) -> None:
+    def __init__(
+        self, guests: GuestRepository, templates: TemplateCatalog, links: InviteLinkRepository
+    ) -> None:
         self._guests = guests
         self._templates = templates
+        self._links = links
 
     async def execute(self, actor: ActorContext, guest_id: UUID, patch: GuestPatch) -> Guest:
         current = await self._guests.get(actor.tenant_id, guest_id)
@@ -52,6 +56,9 @@ class UpdateGuest:
         }
         draft = replace(current.draft, **changes)
         ensure_valid(draft, await self._templates.known_keys())
+        if patch.link is not None:
+            # Chỉ kiểm khi đổi link: link cũ đã mất không được chặn sửa "Đã gửi"/"Phản hồi".
+            await ensure_link(self._links, actor.tenant_id, draft.link)
         saved = await self._guests.replace(actor.tenant_id, guest_id, draft, actor_id=actor.user_id)
         if saved is None:
             raise guest_not_found()

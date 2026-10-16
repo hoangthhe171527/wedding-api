@@ -12,6 +12,7 @@ from dataclasses import replace
 from app.core.context import ActorContext
 from app.modules.wedding.application.ports import GuestUsage, PlanGate, TemplateCatalog
 from app.modules.wedding.application.support import ensure_plan, ensure_valid, not_setup
+from app.modules.wedding.domain.designs import canonical_keys, normalize_designs
 from app.modules.wedding.domain.entities import Wedding, WeddingContent
 from app.modules.wedding.domain.repositories import WeddingRepository
 
@@ -31,15 +32,26 @@ class SaveWedding:
         self._guests = guests
         self._gate = gate
 
-    async def execute(self, actor: ActorContext, content: WeddingContent) -> Wedding:
+    async def execute(
+        self, actor: ActorContext, content: WeddingContent, *, designs_sent: bool = True
+    ) -> Wedding:
         """Raises: ValidationError, NotFoundError, ConflictError(`plan_required`).
+
+        `designs_sent=False` (app cũ không gửi `designs`): giữ design đã lưu của các
+        mẫu khác, chỉ thay design mẫu chính bằng trường giao diện cũ.
 
         Thiệp CHƯA xuất bản: soạn / xem trước mọi tính năng thoải mái. Thiệp ĐANG
         xuất bản: nội dung mới đi thẳng tới khách nên cũng phải hợp gói — nếu
         không, xuất bản một bản hợp lệ rồi sửa là dùng được mọi tính năng miễn phí.
         """
-        ensure_valid(content, await self._templates.known_keys())
         current = await self._weddings.find_by_tenant(actor.tenant_id)
+        # Mẫu đã nghỉ lưu dưới khoá chuẩn: `main_key()` và design mẫu chính cùng một khoá.
+        content = normalize_designs(
+            canonical_keys(content, self._templates.canonical),
+            designs_sent=designs_sent,
+            stored=current.content if current is not None else None,
+        )
+        ensure_valid(content, await self._templates.known_keys())
         if current is not None and current.published:
             await ensure_plan(replace(current, content=content), self._guests, self._gate)
         saved = await self._weddings.save_content(actor.tenant_id, content, actor_id=actor.user_id)

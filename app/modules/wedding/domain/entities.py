@@ -141,6 +141,23 @@ class Theme:
 
 
 @dataclass(frozen=True, slots=True)
+class TemplateDesign:
+    """Giao diện riêng của MỘT mẫu trong đám cưới này (spec §5.1).
+
+    Nội dung (tên, lễ tiệc, ảnh, câu chữ) dùng chung mọi mẫu; phần nhìn thì mỗi mẫu
+    một bộ. Trường cũ cùng tên trên `WeddingContent` là bản phản chiếu của design
+    mẫu chính — app cũ đọc/ghi chúng vẫn đúng.
+    """
+
+    theme: Theme = field(default_factory=Theme)
+    card_design: CardDesign = field(default_factory=CardDesign)
+    #: Id video mở thiệp; rỗng = không video.
+    intro: str = ""
+    open_style: OpenStyle = OpenStyle.BY_TEMPLATE
+    music_url: str = ""
+
+
+@dataclass(frozen=True, slots=True)
 class WeddingContent:
     """Mọi thứ người soạn thiệp sửa ở tab Thông tin cưới và Mẫu thiệp."""
 
@@ -169,6 +186,8 @@ class WeddingContent:
     #: Lịch trình ngày cưới — rỗng thì web thiệp bỏ hẳn phần này.
     schedule: tuple[ScheduleItem, ...] = ()
     dress_code: DressCode = field(default_factory=DressCode)
+    #: `{khoá mẫu: giao diện riêng}` — trường cũ phía trên phản chiếu design mẫu chính.
+    designs: dict[str, TemplateDesign] = field(default_factory=dict)
 
 
 @dataclass(frozen=True, slots=True)
@@ -197,6 +216,7 @@ __all__ = [
     "Parents",
     "Person",
     "Rsvp",
+    "TemplateDesign",
     "Theme",
     "Wedding",
     "WeddingContent",

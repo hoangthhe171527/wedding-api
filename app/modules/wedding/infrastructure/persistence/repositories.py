@@ -21,13 +21,38 @@ from app.modules.wedding.domain.entities import (
     Person,
     Rsvp,
     ScheduleItem,
+    TemplateDesign,
     Theme,
     Wedding,
     WeddingContent,
 )
 from app.modules.wedding.domain.enums import EventKind, OpenStyle, Side
 from app.modules.wedding.domain.repositories import SlugTakenError, WeddingAlreadyExistsError
-from app.modules.wedding.infrastructure.persistence.models import WeddingDocument
+from app.modules.wedding.infrastructure.persistence.models import SCHEMA_VERSION, WeddingDocument
+
+
+def _theme_of(model: Any) -> Theme:
+    return Theme(
+        **{**model.model_dump(), "sections": tuple(model.sections), "hidden": tuple(model.hidden)}
+    )
+
+
+def _card_of(model: Any) -> CardDesign:
+    return CardDesign(
+        enabled=model.enabled,
+        base=model.base,
+        layers=tuple(DesignLayer(**item.model_dump()) for item in model.layers),
+    )
+
+
+def _design_of(model: Any) -> TemplateDesign:
+    return TemplateDesign(
+        theme=_theme_of(model.theme),
+        card_design=_card_of(model.card_design),
+        intro=model.intro,
+        open_style=OpenStyle(model.open_style),
+        music_url=model.music_url,
+    )
 
 
 def _content_of(doc: WeddingDocument) -> WeddingContent:
@@ -66,20 +91,11 @@ def _content_of(doc: WeddingDocument) -> WeddingContent:
         wording={tone: dict(fields) for tone, fields in doc.wording.items()},
         messages=dict(doc.messages),
         open_style=OpenStyle(doc.open_style),
-        theme=Theme(
-            **{
-                **doc.theme.model_dump(),
-                "sections": tuple(doc.theme.sections),
-                "hidden": tuple(doc.theme.hidden),
-            }
-        ),
-        card_design=CardDesign(
-            enabled=doc.card_design.enabled,
-            base=doc.card_design.base,
-            layers=tuple(DesignLayer(**item.model_dump()) for item in doc.card_design.layers),
-        ),
+        theme=_theme_of(doc.theme),
+        card_design=_card_of(doc.card_design),
         schedule=tuple(ScheduleItem(time=item.time, label=item.label) for item in doc.schedule),
         dress_code=DressCode(note=doc.dress_code.note, colors=tuple(doc.dress_code.colors)),
+        designs={key: _design_of(model) for key, model in doc.designs.items()},
     )
 
 
@@ -113,6 +129,10 @@ def _content_fields(content: WeddingContent) -> dict[str, Any]:
         for event in fields["events"]
     ]
     fields["open_style"] = OpenStyle(fields["open_style"]).value
+    fields["designs"] = {
+        key: {**look, "open_style": OpenStyle(look["open_style"]).value}
+        for key, look in fields["designs"].items()
+    }
     return fields
 
 
@@ -137,7 +157,12 @@ class BeanieWeddingRepository:
     async def create(
         self, *, tenant_id: UUID, content: WeddingContent, slug: str, actor_id: UUID | None
     ) -> Wedding:
-        doc = WeddingDocument(tenant_id=tenant_id, slug=slug, **_content_fields(content))
+        doc = WeddingDocument(
+            tenant_id=tenant_id,
+            slug=slug,
+            schema_version=SCHEMA_VERSION,
+            **_content_fields(content),
+        )
         doc.stamp_created(actor_id)
         try:
             await doc.insert()

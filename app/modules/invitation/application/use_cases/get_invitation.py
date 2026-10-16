@@ -25,6 +25,7 @@ from app.modules.invitation.application.ports import (
     WordingDefaults,
 )
 from app.modules.invitation.domain.services import (
+    apply_design,
     effective_intro,
     effective_template,
     for_audience,
@@ -95,16 +96,17 @@ class GetInvitation:
         # Gói chưa có link riêng từng khách: mọi link (kể cả link đối tượng) mở như link chung.
         personal = bool(plan.get("per_guest_links"))
         guest = await self._guests.by_code(tenant_id, code) if code and personal else None
-        audience = await self._guests.by_link(tenant_id, link) if link and personal else None
+        guest_link = (guest or {}).get("link") or None
+        url_link = await self._guests.by_link(tenant_id, link) if link and personal else None
+        audience = guest_link or url_link
         template = effective_template(
-            guest=guest,
-            group_templates=dict(snapshot.get("group_templates") or {}),
+            guest_link=guest_link,
+            url_link=url_link,
             default_template=str(snapshot.get("default_template") or ""),
-            link=audience,
         )
-        # Khoá mẫu đã nghỉ (lưu từ trước) hiển thị bằng mẫu thay thế — kể cả các trường
-        # khoá mẫu web có thể đọc trong `wedding`/`guest`.
         canonical = self._wording.canonical_template
+        # Design và mẫu chính so theo khoá chuẩn: khoá mẫu đã nghỉ vẫn khớp.
+        snapshot = apply_design(snapshot, template, canonical)
         wedding = public_wedding(snapshot)
         if wedding.get("default_template"):
             wedding["default_template"] = canonical(str(wedding["default_template"]))
@@ -112,10 +114,11 @@ class GetInvitation:
         if isinstance(design, dict) and design.get("base"):
             wedding["card_design"] = {**design, "base": canonical(str(design["base"]))}
         shown_guest = public_guest(guest)
-        if shown_guest is not None and shown_guest.get("template"):
-            shown_guest["template"] = canonical(str(shown_guest["template"]))
-        # Video mở thiệp: id nằm trong snapshot (riêng tư); lên trang chỉ có URL đã ký.
-        intro = effective_intro(wedding_intro=str(snapshot.get("intro") or ""), link=audience)
+        if shown_guest is not None:
+            shown_guest.pop("link", None)
+            if shown_guest.get("template"):
+                shown_guest["template"] = canonical(str(shown_guest["template"]))
+        intro = effective_intro(str(snapshot.get("intro") or ""))
         intro_url = await self._intros.url_of(intro) if intro else ""
         return Invitation(
             wedding={**for_audience(wedding, audience), "intro_url": intro_url},

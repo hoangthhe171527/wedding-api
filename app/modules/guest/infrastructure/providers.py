@@ -17,6 +17,7 @@ from app.modules.guest.application.use_cases import (
     ListGuests,
     ListLinks,
     ListWishes,
+    MoveGuestsToLink,
     UpdateGuest,
     UpdateLink,
 )
@@ -42,12 +43,17 @@ def _plan_guest_limit() -> PlanGuestLimit:
 
 def provide_create_guest() -> CreateGuest:
     return CreateGuest(
-        BeanieGuestRepository(), build_template_catalog_reader(), _plan_guest_limit()
+        BeanieGuestRepository(),
+        build_template_catalog_reader(),
+        BeanieInviteLinkRepository(),
+        _plan_guest_limit(),
     )
 
 
 def provide_update_guest() -> UpdateGuest:
-    return UpdateGuest(BeanieGuestRepository(), build_template_catalog_reader())
+    return UpdateGuest(
+        BeanieGuestRepository(), build_template_catalog_reader(), BeanieInviteLinkRepository()
+    )
 
 
 def provide_delete_guest() -> DeleteGuest:
@@ -55,7 +61,12 @@ def provide_delete_guest() -> DeleteGuest:
 
 
 def provide_import_guests() -> ImportGuests:
-    return ImportGuests(BeanieGuestRepository(), _plan_guest_limit())
+    return ImportGuests(
+        BeanieGuestRepository(),
+        BeanieInviteLinkRepository(),
+        provide_create_link(),
+        _plan_guest_limit(),
+    )
 
 
 def provide_list_wishes() -> ListWishes:
@@ -67,7 +78,7 @@ def provide_delete_wish() -> DeleteWish:
 
 
 def provide_list_links() -> ListLinks:
-    return ListLinks(BeanieInviteLinkRepository())
+    return ListLinks(BeanieInviteLinkRepository(), BeanieGuestRepository())
 
 
 def provide_create_link() -> CreateLink:
@@ -79,7 +90,11 @@ def provide_update_link() -> UpdateLink:
 
 
 def provide_delete_link() -> DeleteLink:
-    return DeleteLink(BeanieInviteLinkRepository())
+    return DeleteLink(BeanieInviteLinkRepository(), BeanieGuestRepository())
+
+
+def provide_move_guests() -> MoveGuestsToLink:
+    return MoveGuestsToLink(BeanieGuestRepository(), BeanieInviteLinkRepository())
 
 
 ListLinksDep = Annotated[ListLinks, Depends(provide_list_links)]
@@ -93,6 +108,7 @@ CreateGuestDep = Annotated[CreateGuest, Depends(provide_create_guest)]
 UpdateGuestDep = Annotated[UpdateGuest, Depends(provide_update_guest)]
 DeleteGuestDep = Annotated[DeleteGuest, Depends(provide_delete_guest)]
 ImportGuestsDep = Annotated[ImportGuests, Depends(provide_import_guests)]
+MoveGuestsDep = Annotated[MoveGuestsToLink, Depends(provide_move_guests)]
 
 __all__ = [
     "CreateGuestDep",
@@ -104,6 +120,7 @@ __all__ = [
     "ListGuestsDep",
     "ListLinksDep",
     "ListWishesDep",
+    "MoveGuestsDep",
     "UpdateGuestDep",
     "UpdateLinkDep",
 ]

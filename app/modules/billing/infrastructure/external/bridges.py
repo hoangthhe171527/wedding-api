@@ -44,6 +44,7 @@ class PlanGate:
                 gift=bool(usage.get("gift")),
                 theme=bool(usage.get("theme")),
                 design=bool(usage.get("design")),
+                open_styles=frozenset(map(str, usage.get("open_styles") or [])),
             ),
         )
         return {

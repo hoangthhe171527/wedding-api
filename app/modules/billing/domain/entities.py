@@ -81,6 +81,8 @@ class Usage:
     gift: bool
     theme: bool
     design: bool = False
+    #: Màn mở của MỌI mẫu đang dùng (mỗi mẫu một design); rỗng = chỉ `open_style`.
+    open_styles: frozenset[str] = frozenset()
 
 
 @dataclass(frozen=True, slots=True)

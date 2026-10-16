@@ -32,6 +32,11 @@ class ParentsModel(BaseModel):
     address: str = ""
 
 
+#: 1 = da chuyen sang design theo mau + khach theo link (migrate_links_designs).
+#: Dam cuoi tao moi ghi thang gia tri nay; tai lieu cu mang 0 (mac dinh) de duoc chuyen.
+SCHEMA_VERSION: int = 1
+
+
 class EventModel(BaseModel):
     id: str
     name: str = ""
@@ -127,6 +132,16 @@ class CardDesignModel(BaseModel):
     layers: list[DesignLayerModel] = Field(default_factory=list)
 
 
+class TemplateDesignModel(BaseModel):
+    """Giao diện riêng của một mẫu (spec §5.1)."""
+
+    theme: ThemeModel = Field(default_factory=ThemeModel)
+    card_design: CardDesignModel = Field(default_factory=CardDesignModel)
+    intro: str = ""
+    open_style: str = ""
+    music_url: str = ""
+
+
 class WeddingDocument(TenantScopedDocument):
     """Đám cưới của một xưởng — đúng một document mỗi xưởng."""
 
@@ -154,6 +169,11 @@ class WeddingDocument(TenantScopedDocument):
     schedule: list[ScheduleItemModel] = Field(default_factory=list)
     dress_code: DressCodeModel = Field(default_factory=DressCodeModel)
     checklist: dict[str, bool] = Field(default_factory=dict)
+    #: `{khoá mẫu: giao diện riêng}`; trường giao diện cũ phản chiếu design mẫu chính.
+    designs: dict[str, TemplateDesignModel] = Field(default_factory=dict)
+    #: 1 = đã chuyển sang design theo mẫu + khách theo link (`app/seeds/migrate_links_designs.py`).
+    #: Lúc chuyển, worker giữ quyền bằng trường thô `migrating_at` (ngoài model, xoá khi xong).
+    schema_version: int = 0
 
     class Settings(TenantScopedDocument.Settings):
         name = "weddings"
@@ -179,6 +199,7 @@ DOCUMENTS: list[type[Document]] = [WeddingDocument]
 
 __all__ = [
     "DOCUMENTS",
+    "SCHEMA_VERSION",
     "BankAccountModel",
     "EventModel",
     "GiftModel",

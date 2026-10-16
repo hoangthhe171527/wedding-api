@@ -116,8 +116,10 @@ def validate_link(
     return errors
 
 
-def parse_import(text: str) -> tuple[list[GuestDraft], int]:
-    """Đọc ô "Nhập nhanh" — y hệt `importGuests()` của thiết kế.
+def parse_import_rows(text: str) -> tuple[list[tuple[GuestDraft, str]], int]:
+    """Như `parse_import` nhưng giữ chữ gốc cột 4 (tên link) của từng dòng.
+
+    Đọc ô "Nhập nhanh" — y hệt `importGuests()` của thiết kế.
 
     Mỗi dòng một thiệp, cột cách bằng `|` hoặc Tab (dán từ Excel):
     `Danh xưng | Tên | Kèm theo | Nhóm | Nhà (trai/gái) | Số người`.
@@ -125,7 +127,7 @@ def parse_import(text: str) -> tuple[list[GuestDraft], int]:
     Returns:
         (các thiệp đọc được, số dòng bỏ qua vì thiếu tên).
     """
-    drafts: list[GuestDraft] = []
+    drafts: list[tuple[GuestDraft, str]] = []
     skipped = 0
     groups_by_lower = {group.lower(): group for group in GUEST_GROUPS}
     for raw_line in text.splitlines():
@@ -144,17 +146,22 @@ def parse_import(text: str) -> tuple[list[GuestDraft], int]:
             count = int(col(5))
         except ValueError:
             count = 1
-        drafts.append(
-            GuestDraft(
-                title=col(0),
-                name=col(1),
-                plus=col(2),
-                group=groups_by_lower.get(col(3).lower(), DEFAULT_GROUP),
-                side=Side.GAI if _BRIDE_SIDE_RE.search(col(4)) else Side.TRAI,
-                count=min(max(count, 1), MAX_PARTY_SIZE),
-            )
+        draft = GuestDraft(
+            title=col(0),
+            name=col(1),
+            plus=col(2),
+            group=groups_by_lower.get(col(3).lower(), DEFAULT_GROUP),
+            side=Side.GAI if _BRIDE_SIDE_RE.search(col(4)) else Side.TRAI,
+            count=min(max(count, 1), MAX_PARTY_SIZE),
         )
+        drafts.append((draft, col(3)))
     return drafts, skipped
+
+
+def parse_import(text: str) -> tuple[list[GuestDraft], int]:
+    """Đọc ô "Nhập nhanh" thành các thiệp (bỏ cột tên link)."""
+    rows, skipped = parse_import_rows(text)
+    return [draft for draft, _ in rows], skipped
 
 
 __all__ = [
@@ -169,6 +176,7 @@ __all__ = [
     "is_valid_link_slug",
     "link_slug_from",
     "parse_import",
+    "parse_import_rows",
     "validate_draft",
     "validate_link",
 ]
