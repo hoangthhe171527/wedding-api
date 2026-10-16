@@ -40,38 +40,52 @@ PUBLIC_WEDDING_KEYS: Final[frozenset[str]] = frozenset(
 )
 
 
+#: Trường giao diện lấy từ design của mẫu đang hiện (bản chép `TemplateDesign` của `wedding`).
+LOOK_KEYS: Final[tuple[str, ...]] = ("theme", "card_design", "intro", "open_style", "music_url")
+_EMPTY_LOOK: Final[dict[str, Any]] = {
+    "theme": {},
+    "card_design": {"enabled": False, "base": "", "layers": []},
+    "intro": "",
+    "open_style": "",
+    "music_url": "",
+}
+
+
 def effective_template(
     *,
-    guest: dict[str, Any] | None,
-    group_templates: dict[str, str],
+    guest_link: dict[str, Any] | None,
+    url_link: dict[str, Any] | None,
     default_template: str,
-    link: dict[str, Any] | None = None,
 ) -> str:
-    """Mẫu riêng của khách -> mẫu của nhóm -> mẫu của link đối tượng -> mẫu mặc định
-    -> mẫu lùi.
+    """Mẫu của link khách thuộc về -> mẫu của link trên URL -> mẫu chính -> mẫu lùi.
 
-    Khách có link riêng mở qua link đối tượng (hiếm: `/<đuôi>#<mã>`) vẫn thấy mẫu
-    dành riêng cho mình — link riêng nhắm đúng một người nên được ưu tiên.
+    Link riêng của khách thắng link trên URL: link riêng nhắm đúng một người.
     """
-    if guest is not None:
-        if guest.get("template"):
-            return str(guest["template"])
-        by_group = group_templates.get(str(guest.get("group", "")))
-        if by_group:
-            return by_group
-    if link is not None and link.get("template"):
-        return str(link["template"])
+    for link in (guest_link, url_link):
+        if link and link.get("template"):
+            return str(link["template"])
     return default_template or FALLBACK_TEMPLATE
 
 
-def effective_intro(*, wedding_intro: str, link: dict[str, Any] | None = None) -> str:
-    """Video mở thiệp của link đối tượng -> video của thiệp. Rỗng = không video.
+def apply_design(snapshot: dict[str, Any], template: str) -> dict[str, Any]:
+    """Đè phần nhìn của `snapshot` bằng design của `template`.
 
-    Link: rỗng = theo thiệp; `none` = link này không phát video (dù thiệp có).
+    Mẫu chưa được design: dùng mặc định của mẫu (giao diện rỗng) — KHÔNG lấy màu
+    của mẫu chính, vì màu đó chọn cho bố cục khác. Riêng mẫu chính chưa có design
+    (dữ liệu trước khi chuyển đổi) thì giữ nguyên trường cũ.
     """
-    chosen = str((link or {}).get("intro") or "").strip()
-    if not chosen:
-        chosen = wedding_intro.strip()
+    designs = snapshot.get("designs") or {}
+    look = designs.get(template)
+    if look is None:
+        if template == (snapshot.get("default_template") or FALLBACK_TEMPLATE):
+            return snapshot
+        look = _EMPTY_LOOK
+    return {**snapshot, **{key: look.get(key, _EMPTY_LOOK[key]) for key in LOOK_KEYS}}
+
+
+def effective_intro(wedding_intro: str) -> str:
+    """Id video mở thiệp của design đang hiện; `none` hay rỗng = không video."""
+    chosen = wedding_intro.strip()
     return "" if chosen == NO_INTRO else chosen
 
 
@@ -112,8 +126,10 @@ def public_guest(guest: dict[str, Any] | None) -> dict[str, Any] | None:
 
 __all__ = [
     "FALLBACK_TEMPLATE",
+    "LOOK_KEYS",
     "NO_INTRO",
     "PUBLIC_WEDDING_KEYS",
+    "apply_design",
     "effective_intro",
     "effective_template",
     "for_audience",

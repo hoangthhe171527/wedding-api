@@ -102,17 +102,14 @@ async def test_link_cua_xuong_khac_khong_dung_duoc(
 
 
 def test_thu_tu_uu_tien_mau() -> None:
-    """Khách -> nhóm -> link đối tượng -> mặc định -> mẫu lùi (hàm thuần: catalog chỉ còn
+    """Link của khách -> link trên URL -> mặc định -> mẫu lùi (hàm thuần: catalog chỉ còn
     một mẫu nên qua HTTP mọi nhánh đều ra `daile`, không phân biệt được)."""
     pick = effective_template
-    groups = {"Họ hàng": "g"}
     link = {"template": "l"}
-    assert pick(guest={"template": "k"}, group_templates=groups, default_template="d") == "k"
-    guest = {"group": "Họ hàng"}
-    assert pick(guest=guest, group_templates=groups, default_template="d", link=link) == "g"
-    assert pick(guest={}, group_templates=groups, default_template="d", link=link) == "l"
-    assert pick(guest=None, group_templates=groups, default_template="d") == "d"
-    assert pick(guest=None, group_templates={}, default_template="") == FALLBACK_TEMPLATE
+    assert pick(guest_link=None, url_link=link, default_template="d") == "l"
+    assert pick(guest_link={"template": "k"}, url_link=link, default_template="d") == "k"
+    assert pick(guest_link=None, url_link=None, default_template="d") == "d"
+    assert pick(guest_link=None, url_link=None, default_template="") == FALLBACK_TEMPLATE
 
 
 async def test_mo_link_doi_tuong_ra_dung_mau(client: AsyncClient, customer: Session) -> None:

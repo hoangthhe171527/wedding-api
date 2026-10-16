@@ -19,6 +19,7 @@ from app.modules.guest.application.use_cases import (
     RespondToInvitation,
     SeedSampleGuests,
 )
+from app.modules.guest.domain.entities import InviteLink
 from app.modules.guest.domain.enums import RsvpStatus
 from app.modules.guest.domain.services import is_valid_code, is_valid_link_slug
 from app.modules.guest.infrastructure.persistence.repositories import (
@@ -58,13 +59,23 @@ class GuestByCodeReader:
         link = await self._links.find_by_slug(tenant_id, slug)
         if link is None:
             return None
+        return self._public_link(link)
+
+    def _public_link(self, link: InviteLink) -> dict[str, Any]:
         return {
             "slug": link.slug,
             "template": link.template,
             "greeting": link.greeting,
             "events": list(link.events),
-            "intro": link.intro,
         }
+
+    async def _link_by_id(self, tenant_id: UUID, link_id: str) -> dict[str, Any] | None:
+        try:
+            parsed = UUID(link_id)
+        except ValueError:
+            return None
+        link = await self._links.get(tenant_id, parsed)
+        return self._public_link(link) if link else None
 
     async def by_code(self, tenant_id: UUID, code: str) -> dict[str, Any] | None:
         code = code.strip().lower()
@@ -84,6 +95,7 @@ class GuestByCodeReader:
             "events": list(draft.events),
             "count": draft.count,
             "template": draft.template,
+            "link": await self._link_by_id(tenant_id, draft.link) if draft.link else None,
         }
 
 
