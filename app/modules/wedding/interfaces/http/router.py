@@ -79,7 +79,9 @@ async def save_wedding(
     payload: WeddingContentIO, actor: StudioEditor, use_case: SaveWeddingDep
 ) -> dict[str, Any]:
     """Thay trọn nội dung (lưu tự động từ form). Không chạm slug/xuất bản/tiến độ."""
-    return ok(WeddingOut.of_wedding(await use_case.execute(actor, payload.to_domain())))
+    content = payload.to_domain()
+    saved = await use_case.execute(actor, content, designs_sent=payload.designs is not None)
+    return ok(WeddingOut.of_wedding(saved))
 
 
 @router.put(

@@ -14,7 +14,8 @@ SECRET = "x" * 40
 
 
 def _content(wedding: dict[str, Any]) -> dict[str, Any]:
-    meta = {"id", "slug", "published", "site_url", "checklist", "updated_at"}
+    # Không gửi `designs`: mô phỏng app cũ, trường giao diện cũ là nguồn đúng.
+    meta = {"id", "slug", "published", "site_url", "checklist", "updated_at", "designs"}
     return {key: value for key, value in wedding.items() if key not in meta}
 
 

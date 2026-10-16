@@ -24,6 +24,7 @@ from app.modules.wedding.domain.entities import (
     Person,
     Rsvp,
     ScheduleItem,
+    TemplateDesign,
     Theme,
     Wedding,
     WeddingContent,
@@ -262,6 +263,35 @@ class CardDesignIO(BaseModel):
         )
 
 
+class TemplateDesignIO(BaseModel):
+    """Giao diện riêng của một mẫu — cùng các trường giao diện của nội dung."""
+
+    theme: ThemeIO = Field(default_factory=ThemeIO)
+    card_design: CardDesignIO = Field(default_factory=CardDesignIO)
+    intro: Annotated[str, Field(max_length=64)] = ""
+    open_style: OpenStyle = OpenStyle.BY_TEMPLATE
+    music_url: Url = ""
+
+    def to_domain(self) -> TemplateDesign:
+        return TemplateDesign(
+            theme=self.theme.to_domain(),
+            card_design=self.card_design.to_domain(),
+            intro=self.intro.strip(),
+            open_style=self.open_style,
+            music_url=self.music_url,
+        )
+
+    @classmethod
+    def of(cls, item: TemplateDesign) -> TemplateDesignIO:
+        return cls(
+            theme=ThemeIO.of(item.theme),
+            card_design=CardDesignIO.of(item.card_design),
+            intro=item.intro,
+            open_style=item.open_style,
+            music_url=item.music_url,
+        )
+
+
 class WeddingContentIO(BaseModel):
     """Nội dung đám cưới — thân của `PUT /wedding` và một phần của `WeddingOut`."""
 
@@ -281,6 +311,8 @@ class WeddingContentIO(BaseModel):
     group_templates: dict[str, Annotated[str, Field(max_length=40)]] = Field(default_factory=dict)
     wording: dict[str, dict[str, Line]] = Field(default_factory=dict)
     messages: dict[str, Text] = Field(default_factory=dict)
+    #: Vắng mặt (app cũ) = giữ design đã lưu; có mặt = thay trọn (spec §5.1).
+    designs: dict[Annotated[str, Field(max_length=40)], TemplateDesignIO] | None = None
     open_style: OpenStyle = OpenStyle.BY_TEMPLATE
     theme: ThemeIO = Field(default_factory=ThemeIO)
     card_design: CardDesignIO = Field(default_factory=CardDesignIO)
@@ -316,6 +348,7 @@ class WeddingContentIO(BaseModel):
                 note=self.dress_code.note.strip(),
                 colors=tuple(color.upper() for color in self.dress_code.colors),
             ),
+            designs={key: item.to_domain() for key, item in (self.designs or {}).items()},
         )
 
     @classmethod
@@ -347,6 +380,7 @@ class WeddingContentIO(BaseModel):
             dress_code=DressCodeIO(
                 note=content.dress_code.note, colors=list(content.dress_code.colors)
             ),
+            designs={key: TemplateDesignIO.of(item) for key, item in content.designs.items()},
         )
 
 
