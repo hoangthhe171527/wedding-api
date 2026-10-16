@@ -8,11 +8,12 @@ from app.modules.guest.application.ports import PlanGuestLimit, TemplateCatalog
 from app.modules.guest.application.support import (
     create_with_code,
     ensure_capacity,
+    ensure_link,
     ensure_valid,
     settle_capacity,
 )
 from app.modules.guest.domain.entities import Guest, GuestDraft
-from app.modules.guest.domain.repositories import GuestRepository
+from app.modules.guest.domain.repositories import GuestRepository, InviteLinkRepository
 
 log = get_logger(__name__)
 
@@ -24,15 +25,18 @@ class CreateGuest:
         self,
         guests: GuestRepository,
         templates: TemplateCatalog,
+        links: InviteLinkRepository,
         plan_limit: PlanGuestLimit | None = None,
     ) -> None:
         self._guests = guests
         self._templates = templates
+        self._links = links
         self._plan_limit = plan_limit
 
     async def execute(self, actor: ActorContext, draft: GuestDraft) -> Guest:
         """Raises: ValidationError, ConflictError (vượt số thiệp tối đa)."""
         ensure_valid(draft, await self._templates.known_keys())
+        await ensure_link(self._links, actor.tenant_id, draft.link)
         await ensure_capacity(self._guests, actor.tenant_id, 1, self._plan_limit)
         guest = await create_with_code(self._guests, actor.tenant_id, draft, actor_id=actor.user_id)
         await settle_capacity(self._guests, actor.tenant_id, [guest], self._plan_limit)

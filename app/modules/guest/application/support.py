@@ -9,7 +9,11 @@ from app.core.errors import ConflictError, NotFoundError, ValidationError
 from app.modules.guest.application.ports import PlanGuestLimit
 from app.modules.guest.domain.entities import Guest, GuestDraft
 from app.modules.guest.domain.enums import MAX_GUESTS_PER_STUDIO
-from app.modules.guest.domain.repositories import GuestCodeTakenError, GuestRepository
+from app.modules.guest.domain.repositories import (
+    GuestCodeTakenError,
+    GuestRepository,
+    InviteLinkRepository,
+)
 from app.modules.guest.domain.services import generate_code, validate_draft
 
 #: Va chạm mã trong một xưởng vài trăm khách gần như không xảy ra; vài lượt thử
@@ -26,6 +30,19 @@ def ensure_valid(draft: GuestDraft, known_templates: frozenset[str]) -> None:
     if errors:
         first = next(iter(errors.values()))[0]
         raise ValidationError(first, errors=errors)
+
+
+async def ensure_link(links: InviteLinkRepository, tenant_id: UUID, link: str) -> None:
+    """Raises: ValidationError nếu `link` khác rỗng mà không phải link của xưởng."""
+    if not link:
+        return
+    try:
+        link_id: UUID | None = UUID(link)
+    except ValueError:
+        link_id = None
+    if link_id is None or await links.get(tenant_id, link_id) is None:
+        message = "Link không tồn tại. Chọn lại link cho khách."
+        raise ValidationError(message, errors={"link": [message]})
 
 
 async def _capacity_error(
@@ -124,6 +141,7 @@ __all__ = [
     "create_many_with_codes",
     "create_with_code",
     "ensure_capacity",
+    "ensure_link",
     "ensure_valid",
     "guest_not_found",
     "settle_capacity",

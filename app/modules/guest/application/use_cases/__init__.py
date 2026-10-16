@@ -11,6 +11,7 @@ from app.modules.guest.application.use_cases.links import (
     UpdateLink,
 )
 from app.modules.guest.application.use_cases.list_guests import ListGuests
+from app.modules.guest.application.use_cases.move_guests import MoveGuestsToLink
 from app.modules.guest.application.use_cases.replies import (
     DeleteWish,
     LeaveWish,
@@ -35,6 +36,7 @@ __all__ = [
     "ListGuests",
     "ListLinks",
     "ListWishes",
+    "MoveGuestsToLink",
     "Reply",
     "RespondToInvitation",
     "SeedSampleGuests",

@@ -45,6 +45,7 @@ def _draft_fields(draft: GuestDraft) -> dict[str, Any]:
         "events": list(draft.events),
         "party_size": draft.count,
         "template": draft.template,
+        "link": draft.link,
         "status": draft.status.value,
         "sent": draft.sent,
         "note": draft.note.strip(),
@@ -65,6 +66,7 @@ def _guest(doc: GuestDocument) -> Guest:
             events=tuple(doc.events),
             count=doc.party_size,
             template=doc.template,
+            link=doc.link,
             status=RsvpStatus(doc.status),
             sent=doc.sent,
             note=doc.note,
@@ -124,6 +126,34 @@ class BeanieGuestRepository:
     async def find_by_code(self, tenant_id: UUID, code: str) -> Guest | None:
         doc = await GuestDocument.scoped(tenant_id, GuestDocument.code == code).first_or_none()
         return _guest(doc) if doc else None
+
+    async def set_link(
+        self, tenant_id: UUID, guest_ids: Sequence[UUID], link: str, *, actor_id: UUID
+    ) -> int:
+        result = await GuestDocument.get_motor_collection().update_many(
+            {"tenant_id": tenant_id, "_id": {"$in": list(guest_ids)}, "deleted_at": None},
+            {"$set": {"link": link, "updated_at": utc_now(), "updated_by": actor_id}},
+        )
+        return int(result.matched_count)
+
+    async def clear_link(self, tenant_id: UUID, link: str) -> None:
+        await GuestDocument.get_motor_collection().update_many(
+            {"tenant_id": tenant_id, "link": link}, {"$set": {"link": ""}}
+        )
+
+    async def link_stats(self, tenant_id: UUID) -> dict[str, tuple[int, int]]:
+        pipeline: list[dict[str, Any]] = [
+            {"$match": {"tenant_id": tenant_id, "deleted_at": None, "link": {"$ne": ""}}},
+            {
+                "$group": {
+                    "_id": "$link",
+                    "guests": {"$sum": 1},
+                    "replies": {"$sum": {"$cond": [{"$ne": ["$status", "none"]}, 1, 0]}},
+                }
+            },
+        ]
+        rows = await GuestDocument.get_motor_collection().aggregate(pipeline).to_list(None)
+        return {str(row["_id"]): (int(row["guests"]), int(row["replies"])) for row in rows}
 
     async def count(self, tenant_id: UUID) -> int:
         return int(await GuestDocument.scoped(tenant_id).count())

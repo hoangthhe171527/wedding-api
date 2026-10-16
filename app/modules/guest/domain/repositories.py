@@ -55,6 +55,20 @@ class GuestRepository(Protocol):
         """Tạo hàng loạt một lượt; trả (khách đã tạo, vị trí bị trùng mã cần thử lại)."""
         ...
 
+    async def set_link(
+        self, tenant_id: UUID, guest_ids: Sequence[UUID], link: str, *, actor_id: UUID
+    ) -> int:
+        """Chuyển khách sang link (rỗng = bỏ khỏi link). Trả số khách đã đổi."""
+        ...
+
+    async def clear_link(self, tenant_id: UUID, link: str) -> None:
+        """Mọi khách của link `link` thành chưa xếp link (khi xoá link)."""
+        ...
+
+    async def link_stats(self, tenant_id: UUID) -> dict[str, tuple[int, int]]:
+        """`{id link: (số khách, số khách đã phản hồi)}`."""
+        ...
+
     async def discard(self, tenant_id: UUID, guest_ids: Sequence[UUID]) -> None:
         """Xoá hẳn — chỉ để hoàn tác khách vừa tạo khi vượt hạn mức."""
         ...

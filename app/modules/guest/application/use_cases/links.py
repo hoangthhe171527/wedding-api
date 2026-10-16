@@ -6,7 +6,7 @@ khách. Mỗi link một đuôi (`/invite/<slug thiệp>/<đuôi>`) và một m�
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from uuid import UUID
 
 from app.core.context import ActorContext
@@ -16,6 +16,7 @@ from app.modules.guest.application.ports import TemplateCatalog
 from app.modules.guest.domain.entities import InviteLink
 from app.modules.guest.domain.enums import MAX_LINKS_PER_STUDIO
 from app.modules.guest.domain.repositories import (
+    GuestRepository,
     InviteLinkRepository,
     LinkFields,
     LinkSlugTakenError,
@@ -86,11 +87,20 @@ def _numbered(base: str, attempt: int) -> str:
 
 
 class ListLinks:
-    def __init__(self, links: InviteLinkRepository) -> None:
+    def __init__(self, links: InviteLinkRepository, guests: GuestRepository) -> None:
         self._links = links
+        self._guests = guests
 
     async def execute(self, actor: ActorContext) -> list[InviteLink]:
-        return await self._links.list_all(actor.tenant_id)
+        stats = await self._guests.link_stats(actor.tenant_id)
+        return [
+            replace(
+                link,
+                guest_count=stats.get(str(link.id), (0, 0))[0],
+                reply_count=stats.get(str(link.id), (0, 0))[1],
+            )
+            for link in await self._links.list_all(actor.tenant_id)
+        ]
 
 
 class CreateLink:
@@ -157,13 +167,15 @@ class UpdateLink:
 
 
 class DeleteLink:
-    def __init__(self, links: InviteLinkRepository) -> None:
+    def __init__(self, links: InviteLinkRepository, guests: GuestRepository) -> None:
         self._links = links
+        self._guests = guests
 
     async def execute(self, actor: ActorContext, link_id: UUID) -> None:
-        """Raises: NotFoundError. Link đã gửi mở ra như link chung từ đây."""
+        """Raises: NotFoundError. Khách của link thành chưa xếp link, mở thiệp như link chung."""
         if not await self._links.soft_delete(actor.tenant_id, link_id, actor_id=actor.user_id):
             raise link_not_found()
+        await self._guests.clear_link(actor.tenant_id, str(link_id))
         log.info("guest_link_deleted", tenant_id=str(actor.tenant_id), link_id=str(link_id))
 
 

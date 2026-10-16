@@ -34,6 +34,7 @@ class GuestIn(BaseModel):
     events: Annotated[list[EventId], Field(max_length=20)] = Field(default_factory=list)
     count: Annotated[int, Field(ge=1, le=MAX_PARTY_SIZE)] = 1
     template: TemplateKey = ""
+    link: Annotated[str, Field(max_length=40)] = ""
     status: RsvpStatus = RsvpStatus.NONE
     sent: bool = False
     note: Annotated[str, Field(max_length=300)] = ""
@@ -48,6 +49,7 @@ class GuestIn(BaseModel):
             events=tuple(self.events),
             count=self.count,
             template=self.template,
+            link=self.link,
             status=self.status,
             sent=self.sent,
             note=self.note,
@@ -65,6 +67,7 @@ class GuestPatchIn(BaseModel):
     events: Annotated[list[EventId], Field(max_length=20)] | None = None
     count: Annotated[int, Field(ge=1, le=MAX_PARTY_SIZE)] | None = None
     template: TemplateKey | None = None
+    link: Annotated[str, Field(max_length=40)] | None = None
     status: RsvpStatus | None = None
     sent: bool | None = None
     note: Annotated[str, Field(max_length=300)] | None = None
@@ -79,6 +82,7 @@ class GuestPatchIn(BaseModel):
             events=tuple(self.events) if self.events is not None else None,
             count=self.count,
             template=self.template,
+            link=self.link,
             status=self.status,
             sent=self.sent,
             note=self.note,
@@ -125,6 +129,7 @@ class GuestOut(BaseModel):
     events: list[str]
     count: int
     template: str
+    link: str
     status: StatusOut
     sent: bool
     note: str
@@ -147,6 +152,7 @@ class GuestOut(BaseModel):
             events=list(draft.events),
             count=draft.count,
             template=draft.template,
+            link=draft.link,
             status=StatusOut(slug=draft.status.value, label=RSVP_LABELS[draft.status]),
             sent=draft.sent,
             note=draft.note,
@@ -246,6 +252,8 @@ class LinkOut(BaseModel):
     opens: int
     last_opened_at: datetime | None = None
     created_at: datetime | None = None
+    guest_count: int = 0
+    reply_count: int = 0
 
     @classmethod
     def of(cls, link: InviteLink) -> LinkOut:
@@ -260,7 +268,19 @@ class LinkOut(BaseModel):
             opens=link.opens,
             last_opened_at=link.last_opened_at,
             created_at=link.created_at,
+            guest_count=link.guest_count,
+            reply_count=link.reply_count,
         )
+
+
+class MoveGuestsIn(BaseModel):
+    guest_ids: Annotated[list[UUID], Field(min_length=1, max_length=500)]
+    #: Id link đích; rỗng = bỏ khỏi link.
+    link: Annotated[str, Field(max_length=40)] = ""
+
+
+class MoveGuestsOut(BaseModel):
+    moved: int
 
 
 __all__ = [
@@ -271,5 +291,7 @@ __all__ = [
     "ImportOut",
     "LinkIn",
     "LinkOut",
+    "MoveGuestsIn",
+    "MoveGuestsOut",
     "WishOut",
 ]

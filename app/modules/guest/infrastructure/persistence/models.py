@@ -23,6 +23,7 @@ class GuestDocument(TenantScopedDocument):
     #: Số người của thiệp. KHÔNG đặt tên `count`: đè lên `Document.count()` của Beanie.
     party_size: int = 1
     template: str = ""
+    link: str = ""
     status: str = "none"
     sent: bool = False
     note: str = ""

@@ -5,6 +5,7 @@
 | GET    | /api/v1/guests            | phân trang, `per_page` tối đa 500    |
 | POST   | /api/v1/guests            | thêm khách                           |
 | POST   | /api/v1/guests/import     | nhập nhanh nhiều dòng                |
+| POST   | /api/v1/guests/move-link  | chuyển nhiều khách sang một link     |
 | PATCH  | /api/v1/guests/{id}       | sửa một phần (đã gửi, phản hồi...)   |
 | DELETE | /api/v1/guests/{id}       | xoá mềm                              |
 | GET    | /api/v1/guests/wishes     | sổ phản hồi, lời chúc từ web thiệp   |
@@ -45,6 +46,7 @@ from app.modules.guest.infrastructure.providers import (
     ListGuestsDep,
     ListLinksDep,
     ListWishesDep,
+    MoveGuestsDep,
     UpdateGuestDep,
     UpdateLinkDep,
 )
@@ -56,6 +58,8 @@ from app.modules.guest.interfaces.http.schemas import (
     ImportOut,
     LinkIn,
     LinkOut,
+    MoveGuestsIn,
+    MoveGuestsOut,
     WishOut,
 )
 
@@ -148,6 +152,15 @@ async def import_guests(
 ) -> dict[str, Any]:
     """`Danh xưng | Tên | Kèm theo | Nhóm | Nhà (trai/gái) | Số người` — mỗi dòng một thiệp."""
     return ok(ImportOut.of(await use_case.execute(actor, payload.text)))
+
+
+@router.post(
+    "/move-link", response_model=ResponseEnvelope[MoveGuestsOut], summary="Chuyển khách sang link"
+)
+async def move_guests(
+    payload: MoveGuestsIn, actor: GuestManager, use_case: MoveGuestsDep
+) -> dict[str, Any]:
+    return ok(MoveGuestsOut(moved=await use_case.execute(actor, payload.guest_ids, payload.link)))
 
 
 @router.patch("/{guest_id}", response_model=ResponseEnvelope[GuestOut], summary="Sửa khách")
