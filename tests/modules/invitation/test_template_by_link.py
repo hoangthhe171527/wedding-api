@@ -41,6 +41,17 @@ def test_mau_chua_design_khong_lay_theme_mau_chinh() -> None:
     assert apply_design(snapshot, "daile")["theme"] == {"accent": "#AA0000"}
 
 
+def test_mau_chinh_khoa_da_nghi_giu_giao_dien_cu() -> None:
+    from app.modules.template.domain.catalog import canonical_template_key
+
+    snapshot = {"default_template": "anhdao", "theme": {"accent": "#AA0000"}, "intro": "v"}
+    assert canonical_template_key("anhdao") == "daile"
+    shown = apply_design(snapshot, "daile", canonical_template_key)
+    assert shown["theme"] == {"accent": "#AA0000"}
+    stored = {**snapshot, "designs": {"anhdao": {"theme": {"accent": "#00AA00"}}}}
+    assert apply_design(stored, "daile", canonical_template_key)["theme"] == {"accent": "#00AA00"}
+
+
 async def _publish_with_link(client: AsyncClient, session: Session) -> dict[str, Any]:
     setup = await client.post(
         f"{API}/wedding/setup", json={"mode": "sample"}, headers=session.headers

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import copy
+from collections.abc import Callable
 from typing import Any, Final
 
 #: Mẫu lùi cuối cùng — mẫu duy nhất "Đại Lễ Hỷ Sự" (bản chép `DEFAULT_TEMPLATE_KEY`
@@ -67,20 +69,40 @@ def effective_template(
     return default_template or FALLBACK_TEMPLATE
 
 
-def apply_design(snapshot: dict[str, Any], template: str) -> dict[str, Any]:
+def _same(key: str) -> str:
+    return key
+
+
+def apply_design(
+    snapshot: dict[str, Any],
+    template: str,
+    canonical: Callable[[str], str] = _same,
+) -> dict[str, Any]:
     """Đè phần nhìn của `snapshot` bằng design của `template`.
 
     Mẫu chưa được design: dùng mặc định của mẫu (giao diện rỗng) — KHÔNG lấy màu
     của mẫu chính, vì màu đó chọn cho bố cục khác. Riêng mẫu chính chưa có design
     (dữ liệu trước khi chuyển đổi) thì giữ nguyên trường cũ.
+
+    `canonical` đổi khoá mẫu đã nghỉ sang khoá thay thế (do bên gọi truyền vào, domain
+    không import module khác): design và mẫu chính được so theo khoá chuẩn.
     """
+    wanted = canonical(template)
     designs = snapshot.get("designs") or {}
     look = designs.get(template)
     if look is None:
-        if template == (snapshot.get("default_template") or FALLBACK_TEMPLATE):
+        look = designs.get(wanted)
+    if look is None:
+        look = next((item for key, item in designs.items() if canonical(key) == wanted), None)
+    if look is None:
+        main = canonical(str(snapshot.get("default_template") or FALLBACK_TEMPLATE))
+        if wanted == main:
             return snapshot
         look = _EMPTY_LOOK
-    return {**snapshot, **{key: look.get(key, _EMPTY_LOOK[key]) for key in LOOK_KEYS}}
+    return {
+        **snapshot,
+        **{key: copy.deepcopy(look.get(key, _EMPTY_LOOK[key])) for key in LOOK_KEYS},
+    }
 
 
 def effective_intro(wedding_intro: str) -> str:

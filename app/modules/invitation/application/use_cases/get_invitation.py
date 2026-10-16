@@ -105,10 +105,8 @@ class GetInvitation:
             default_template=str(snapshot.get("default_template") or ""),
         )
         canonical = self._wording.canonical_template
-        # Design lưu theo khoá gốc; khoá đã nghỉ thì thử cả khoá thay thế.
-        designed = snapshot.get("designs") or {}
-        key = template if template in designed else canonical(template)
-        snapshot = apply_design(snapshot, key)
+        # Design và mẫu chính so theo khoá chuẩn: khoá mẫu đã nghỉ vẫn khớp.
+        snapshot = apply_design(snapshot, template, canonical)
         wedding = public_wedding(snapshot)
         if wedding.get("default_template"):
             wedding["default_template"] = canonical(str(wedding["default_template"]))
