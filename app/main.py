@@ -86,7 +86,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     await build_ensure_catalog().execute()
     # Chuyển đổi một lần (idempotent): design theo mẫu + khách theo link.
     migrated = await migrate_links_designs()
-    if migrated["weddings"]:
+    if migrated["weddings"] or migrated["failed"]:
         log.info("links_designs_migrated_on_startup", **migrated)
     yield
     await close_redis()

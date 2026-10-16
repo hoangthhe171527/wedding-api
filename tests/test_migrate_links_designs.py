@@ -2,12 +2,15 @@
 
 from __future__ import annotations
 
+import asyncio
+from datetime import timedelta
 from typing import Any
 from uuid import uuid4
 
 import pytest
 from httpx import AsyncClient
 
+from app.core.base_model import utc_now
 from app.modules.guest.infrastructure.persistence.models import GuestDocument, InviteLinkDocument
 from app.modules.wedding.infrastructure.persistence.models import (
     SCHEMA_VERSION,
@@ -162,3 +165,106 @@ async def test_migrate_mot_dam_cuoi_loi_khong_chan_cac_dam_khac(
     assert stats["weddings"] == 1
     done = {w.slug: w.schema_version for w in await WeddingDocument.find({}).to_list()}
     assert done == {"dam-hong": 0, "dam-tot": 1}
+    # Lỗi thì trả lại quyền chuyển: lần khởi động sau thử lại ngay, không chờ hết hạn.
+    raws = await WeddingDocument.get_motor_collection().find({}).to_list(None)
+    assert all("migrating_at" not in raw for raw in raws)
+
+
+async def test_migrate_mau_chinh_da_nghi_doi_sang_khoa_chuan(catalog: None) -> None:
+    await WeddingDocument(
+        tenant_id=uuid4(), slug="bia-den", default_template="noir", theme={"accent": "#AA0000"}
+    ).insert()
+    await run()
+    wedding = await WeddingDocument.find_one({})
+    assert wedding is not None
+    assert wedding.default_template == "daile"
+    assert set(wedding.designs) == {"daile"}
+    assert wedding.designs["daile"].theme.accent == "#AA0000"
+
+
+async def test_migrate_mau_phu_dang_dung_giu_giao_dien_cu(catalog: None) -> None:
+    tenant = uuid4()
+    await WeddingDocument(
+        tenant_id=tenant,
+        slug="nhieu-mau",
+        default_template="daile",
+        group_templates={"Họ hàng": "moi", "Không ai": "trong"},
+        theme={"accent": "#AA0000"},
+        music_url="https://x.vn/a.mp3",
+        designs={"lienket": {"theme": {"accent": "#0000AA"}}},
+    ).insert()
+    for name, group, template in (("Bác Bình", "Họ hàng", ""), ("Bạn Vy", "Bạn bè", "khac")):
+        await GuestDocument(
+            tenant_id=tenant, code=uuid4().hex[:6], name=name, group=group, template=template
+        ).insert()
+    await InviteLinkDocument(
+        tenant_id=tenant, slug="dong-nghiep", name="Đồng nghiệp", template="lienket"
+    ).insert()
+    await InviteLinkDocument(
+        tenant_id=tenant, slug="ban-cu", name="Bạn cũ", template="noir"
+    ).insert()
+    await run()
+    wedding = await WeddingDocument.find_one({})
+    assert wedding is not None
+    assert set(wedding.designs) == {"daile", "moi", "khac", "lienket"}
+    for key in ("daile", "moi", "khac"):
+        assert wedding.designs[key].theme.accent == "#AA0000", key
+        assert wedding.designs[key].music_url == "https://x.vn/a.mp3", key
+    assert wedding.designs["lienket"].theme.accent == "#0000AA", "design có sẵn không bị đè"
+
+
+async def test_migrate_le_tiec_rieng_da_xoa_het_thi_thay_tat_ca(catalog: None) -> None:
+    tenant = uuid4()
+    await WeddingDocument(
+        tenant_id=tenant,
+        slug="xoa-het",
+        default_template="daile",
+        events=[_event("t1", "trai"), _event("g1", "gai")],
+    ).insert()
+    await GuestDocument(
+        tenant_id=tenant, code="abc123", name="A", group="Bạn bè", side="gai", events=["xoa"]
+    ).insert()
+    await run()
+    link = await InviteLinkDocument.find_one({})
+    assert link is not None
+    assert link.events == [], "như eventsFor: danh sách riêng không còn id nào -> mọi lễ tiệc"
+
+
+async def test_migrate_dem_video_rieng_cua_link_bi_bo(catalog: None) -> None:
+    tenant = uuid4()
+    await WeddingDocument(tenant_id=tenant, slug="video", default_template="daile").insert()
+    await InviteLinkDocument(tenant_id=tenant, slug="co-video", name="A", intro="vid1").insert()
+    await InviteLinkDocument(tenant_id=tenant, slug="khong-video", name="B").insert()
+    stats = await run()
+    assert stats["intro_overrides_dropped"] == 1
+
+
+async def test_migrate_nhieu_worker_cung_luc_moi_link_tao_mot_lan(catalog: None) -> None:
+    await _seed()
+    first, second = await asyncio.gather(run(), run())
+    assert first["weddings"] + second["weddings"] == 1
+    assert first["failed"] + second["failed"] == 0
+    names = sorted(link.name for link in await InviteLinkDocument.find({}).to_list())
+    assert names == ["Bạn bè", "Họ hàng", "Đồng nghiệp"]
+    raw = await WeddingDocument.get_motor_collection().find_one({})
+    assert raw is not None
+    assert raw["schema_version"] == SCHEMA_VERSION
+    assert "migrating_at" not in raw
+
+
+async def test_migrate_bo_qua_dam_cuoi_dang_duoc_worker_khac_chuyen(catalog: None) -> None:
+    await _seed()
+    collection = WeddingDocument.get_motor_collection()
+    await collection.update_many({}, {"$set": {"migrating_at": utc_now()}})
+    stats = await run()
+    assert stats["weddings"] == 0
+    assert await InviteLinkDocument.find({}).count() == 1  # chỉ link có sẵn
+
+
+async def test_migrate_nhan_lai_khi_worker_truoc_qua_han(catalog: None) -> None:
+    await _seed()
+    collection = WeddingDocument.get_motor_collection()
+    stale = utc_now() - timedelta(minutes=11)
+    await collection.update_many({}, {"$set": {"migrating_at": stale}})
+    stats = await run()
+    assert stats["weddings"] == 1
