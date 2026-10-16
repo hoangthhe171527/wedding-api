@@ -12,7 +12,7 @@ from dataclasses import replace
 from app.core.context import ActorContext
 from app.modules.wedding.application.ports import GuestUsage, PlanGate, TemplateCatalog
 from app.modules.wedding.application.support import ensure_plan, ensure_valid, not_setup
-from app.modules.wedding.domain.designs import normalize_designs
+from app.modules.wedding.domain.designs import canonical_keys, normalize_designs
 from app.modules.wedding.domain.entities import Wedding, WeddingContent
 from app.modules.wedding.domain.repositories import WeddingRepository
 
@@ -45,8 +45,9 @@ class SaveWedding:
         không, xuất bản một bản hợp lệ rồi sửa là dùng được mọi tính năng miễn phí.
         """
         current = await self._weddings.find_by_tenant(actor.tenant_id)
+        # Mẫu đã nghỉ lưu dưới khoá chuẩn: `main_key()` và design mẫu chính cùng một khoá.
         content = normalize_designs(
-            content,
+            canonical_keys(content, self._templates.canonical),
             designs_sent=designs_sent,
             stored=current.content if current is not None else None,
         )

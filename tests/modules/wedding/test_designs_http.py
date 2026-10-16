@@ -68,3 +68,39 @@ async def test_design_mau_khong_ton_tai_bi_tu_choi(client: AsyncClient, customer
     response = await client.put(f"{API}/wedding", json=content, headers=customer.headers)
     assert response.status_code == 400
     assert "designs.khong-co-mau-nay" in response.json()["errors"]
+
+
+async def test_app_flutter_gui_lai_tron_get_doi_mau_van_luu(
+    client: AsyncClient, customer: Session
+) -> None:
+    """App Flutter dựng body từ lần GET trước (kể cả `designs`) rồi chỉ đổi `theme`."""
+    content = _content(await _setup(client, customer))
+    content["default_template"] = "daile"
+    content["designs"] = {"daile": _look("#AA0000")}
+    first = await client.put(f"{API}/wedding", json=content, headers=customer.headers)
+    assert first.status_code == 200, first.text
+    fetched = (await client.get(f"{API}/wedding", headers=customer.headers)).json()["data"]
+    body = _content(fetched)
+    main = "daile"
+    assert body["designs"][main]["theme"]["accent"] == "#AA0000"
+    body["theme"] = {**body["theme"], "accent": "#123456"}
+    saved = await client.put(f"{API}/wedding", json=body, headers=customer.headers)
+    assert saved.status_code == 200, saved.text
+    again = (await client.get(f"{API}/wedding", headers=customer.headers)).json()["data"]
+    assert again["theme"]["accent"] == "#123456"
+    assert again["designs"][main]["theme"]["accent"] == "#123456"
+
+
+async def test_luu_mau_chinh_da_nghi_tra_ve_khoa_chuan(
+    client: AsyncClient, customer: Session
+) -> None:
+    content = _content(await _setup(client, customer))
+    content["default_template"] = "noir"
+    content["designs"] = {"noir": _look("#AA0000")}
+    saved = await client.put(f"{API}/wedding", json=content, headers=customer.headers)
+    assert saved.status_code == 200, saved.text
+    data = saved.json()["data"]
+    assert data["default_template"] == "daile"
+    assert "noir" not in data["designs"]
+    assert data["designs"]["daile"]["theme"]["accent"] == "#AA0000"
+    assert data["theme"]["accent"] == "#AA0000"

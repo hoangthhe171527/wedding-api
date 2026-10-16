@@ -5,12 +5,15 @@ Luật duy nhất: trường cũ (`theme`, `card_design`, `intro`, `open_style`,
 
 * Client mới gửi `designs` -> designs thắng, trường cũ chép theo mẫu chính
   (thiếu design mẫu chính thì lấy từ trường cũ client gửi).
+* Ngoại lệ: app Flutter gửi lại nguyên `designs` của lần GET trước và chỉ sửa trường
+  cũ. `designs[mẫu chính]` y hệt bản đã lưu mà trường cũ đổi -> trường cũ thắng.
 * Client cũ (app Flutter) không gửi `designs` -> giữ designs đã lưu, chỉ thay
   design mẫu chính bằng trường cũ client gửi.
 """
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import replace
 from typing import Final
 
@@ -54,6 +57,18 @@ def _mirror(content: WeddingContent, designs: dict[str, TemplateDesign]) -> Wedd
     )
 
 
+def canonical_keys(content: WeddingContent, canonical: Callable[[str], str]) -> WeddingContent:
+    """Mẫu chính và khoá design theo khoá chuẩn (mẫu đã nghỉ -> mẫu thay thế).
+
+    `canonical` do bên gọi truyền vào (domain không import module khác). Design gửi
+    dưới khoá đã nghỉ chỉ dùng khi chưa có design dưới khoá chuẩn.
+    """
+    designs = {key: item for key, item in content.designs.items() if canonical(key) == key}
+    for key, item in content.designs.items():
+        designs.setdefault(canonical(key), item)
+    return replace(content, default_template=canonical(content.default_template), designs=designs)
+
+
 def normalize_designs(
     content: WeddingContent, *, designs_sent: bool, stored: WeddingContent | None
 ) -> WeddingContent:
@@ -61,7 +76,15 @@ def normalize_designs(
     key = main_key(content)
     if designs_sent:
         designs = dict(content.designs)
-        designs.setdefault(key, legacy_design(content))
+        legacy = legacy_design(content)
+        if (
+            stored is not None
+            and content.designs.get(key) == stored.designs.get(key)
+            and legacy != legacy_design(stored)
+        ):
+            designs[key] = legacy
+        else:
+            designs.setdefault(key, legacy)
     else:
         designs = dict(stored.designs) if stored is not None else {}
         designs[key] = legacy_design(content)
@@ -71,6 +94,7 @@ def normalize_designs(
 __all__ = [
     "FALLBACK_TEMPLATE",
     "MAX_DESIGNS",
+    "canonical_keys",
     "legacy_design",
     "main_design",
     "main_key",

@@ -172,6 +172,7 @@ class WeddingDocument(TenantScopedDocument):
     #: `{khoá mẫu: giao diện riêng}`; trường giao diện cũ phản chiếu design mẫu chính.
     designs: dict[str, TemplateDesignModel] = Field(default_factory=dict)
     #: 1 = đã chuyển sang design theo mẫu + khách theo link (`app/seeds/migrate_links_designs.py`).
+    #: Lúc chuyển, worker giữ quyền bằng trường thô `migrating_at` (ngoài model, xoá khi xong).
     schema_version: int = 0
 
     class Settings(TenantScopedDocument.Settings):

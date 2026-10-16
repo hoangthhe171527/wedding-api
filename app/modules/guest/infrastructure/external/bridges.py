@@ -107,10 +107,13 @@ class GuestUsageReader:
         self._links = BeanieInviteLinkRepository()
 
     async def usage(self, tenant_id: UUID) -> dict[str, Any]:
-        """Mẫu đang dùng gồm cả mẫu gán cho link đối tượng — người mở link thấy chúng."""
-        count, templates, groups = await self._guests.usage(tenant_id)
-        templates |= await self._links.templates(tenant_id)
-        return {"count": count, "templates": sorted(templates), "groups": sorted(groups)}
+        """Số thiệp và mẫu của các link — khách thấy mẫu qua link (spec §5.3).
+
+        `guest.template` đã bỏ (web không còn vẽ theo nó) nên không tính gói.
+        """
+        count = await self._guests.count(tenant_id)
+        templates = await self._links.templates(tenant_id)
+        return {"count": count, "templates": sorted(templates)}
 
 
 class GuestResponder:

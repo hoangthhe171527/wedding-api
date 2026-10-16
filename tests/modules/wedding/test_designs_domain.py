@@ -6,6 +6,7 @@ from dataclasses import replace
 
 from app.modules.wedding.domain.design import CardDesign
 from app.modules.wedding.domain.designs import (
+    canonical_keys,
     legacy_design,
     main_design,
     main_key,
@@ -97,8 +98,49 @@ def test_plan_usage_gom_design_cua_moi_mau_dang_dung() -> None:
             "unused": TemplateDesign(music_url="https://x.vn/a.mp3"),
         }
     )
-    usage = plan_usage(content, guest_count=3, guest_templates={"other"})
+    usage = plan_usage(content, guest_count=3, link_templates={"other"})
     assert usage["templates"] == ["daile", "other"]
     assert usage["theme"] is True
     assert usage["design"] is True
     assert usage["music"] is False  # mẫu "unused" không ai thấy
+
+
+def test_app_cu_gui_lai_designs_cu_va_doi_truong_cu_thi_truong_cu_thang() -> None:
+    # App Flutter dựng body từ lần GET trước: `designs` y hệt đã lưu, chỉ trường cũ đổi.
+    stored = _content(theme=RED, designs={"daile": TemplateDesign(theme=RED)})
+    incoming = _content(theme=BLUE, designs={"daile": TemplateDesign(theme=RED)})
+    out = normalize_designs(incoming, designs_sent=True, stored=stored)
+    assert out.designs["daile"].theme == BLUE
+    assert out.theme == BLUE
+
+
+def test_client_moi_doi_design_mau_chinh_thi_designs_thang() -> None:
+    stored = _content(theme=RED, designs={"daile": TemplateDesign(theme=RED)})
+    incoming = _content(theme=RED, designs={"daile": TemplateDesign(theme=BLUE)})
+    out = normalize_designs(incoming, designs_sent=True, stored=stored)
+    assert out.designs["daile"].theme == BLUE
+    assert out.theme == BLUE
+
+
+def test_khong_doi_gi_thi_giu_nguyen() -> None:
+    stored = _content(theme=RED, designs={"daile": TemplateDesign(theme=RED)})
+    out = normalize_designs(stored, designs_sent=True, stored=stored)
+    assert out.designs["daile"].theme == RED
+    assert out.theme == RED
+
+
+def test_canonical_keys_doi_mau_da_nghi_sang_khoa_chuan() -> None:
+    def canonical(key: str) -> str:
+        return {"noir": "daile"}.get(key, key)
+
+    content = _content(
+        default_template="noir",
+        designs={"noir": TemplateDesign(theme=BLUE), "other": TemplateDesign(theme=RED)},
+    )
+    out = canonical_keys(content, canonical)
+    assert out.default_template == "daile"
+    assert out.designs == {"daile": TemplateDesign(theme=BLUE), "other": TemplateDesign(theme=RED)}
+    both = _content(
+        designs={"noir": TemplateDesign(theme=BLUE), "daile": TemplateDesign(theme=RED)}
+    )
+    assert canonical_keys(both, canonical).designs == {"daile": TemplateDesign(theme=RED)}

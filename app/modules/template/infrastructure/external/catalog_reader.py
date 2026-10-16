@@ -23,6 +23,10 @@ class TemplateCatalogReader:
     async def known_keys(self) -> frozenset[str]:
         return await self._templates.keys()
 
+    def canonical(self, key: str) -> str:
+        """Khoá mẫu đã nghỉ -> mẫu thay thế (`daile`); khoá đang mở/rỗng giữ nguyên."""
+        return canonical_template_key(key)
+
     async def tiers(self) -> dict[str, str]:
         """Khoá mẫu -> slug hạng (`free`/`standard`/`premium`) — cho `billing`.
 

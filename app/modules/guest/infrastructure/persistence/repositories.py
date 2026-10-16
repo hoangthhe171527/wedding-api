@@ -168,14 +168,6 @@ class BeanieGuestRepository:
         rows = await GuestDocument.get_motor_collection().aggregate(pipeline).to_list(None)
         return {row["_id"]: int(row["n"]) for row in rows}
 
-    async def usage(self, tenant_id: UUID) -> tuple[int, frozenset[str], frozenset[str]]:
-        collection = GuestDocument.get_motor_collection()
-        live = {"tenant_id": tenant_id, "deleted_at": None}
-        count = int(await collection.count_documents(live))
-        templates = await collection.distinct("template", {**live, "template": {"$ne": ""}})
-        groups = await collection.distinct("group", live)
-        return count, frozenset(map(str, templates)), frozenset(map(str, groups))
-
     async def create(
         self, tenant_id: UUID, code: str, draft: GuestDraft, *, actor_id: UUID | None
     ) -> Guest:

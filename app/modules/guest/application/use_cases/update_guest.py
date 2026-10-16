@@ -56,7 +56,9 @@ class UpdateGuest:
         }
         draft = replace(current.draft, **changes)
         ensure_valid(draft, await self._templates.known_keys())
-        await ensure_link(self._links, actor.tenant_id, draft.link)
+        if patch.link is not None:
+            # Chỉ kiểm khi đổi link: link cũ đã mất không được chặn sửa "Đã gửi"/"Phản hồi".
+            await ensure_link(self._links, actor.tenant_id, draft.link)
         saved = await self._guests.replace(actor.tenant_id, guest_id, draft, actor_id=actor.user_id)
         if saved is None:
             raise guest_not_found()

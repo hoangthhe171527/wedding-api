@@ -3,9 +3,12 @@
 from __future__ import annotations
 
 from typing import Any
+from uuid import UUID
 
 from httpx import AsyncClient
 
+from app.modules.guest import build_guest_usage_reader
+from app.modules.guest.infrastructure.persistence.models import GuestDocument, InviteLinkDocument
 from tests.conftest import API, Session
 
 GUESTS = f"{API}/guests"
@@ -82,3 +85,35 @@ async def test_nhap_nhanh_cot_link_tao_link_moi(client: AsyncClient, customer: S
     }
     assert created[0]["link"] == existing["id"]  # khớp tên không phân biệt hoa thường
     assert created[1]["link"] == links["Đồng nghiệp"]  # tên mới -> link mới
+
+
+async def test_link_cu_khong_con_khong_chan_sua_truong_khac(
+    client: AsyncClient, customer: Session
+) -> None:
+    guest = await _guest(client, customer)
+    dangling = "0190a000-0000-7000-8000-000000000000"
+    await GuestDocument.get_motor_collection().update_one(
+        {"_id": UUID(guest["id"])}, {"$set": {"link": dangling}}
+    )
+    response = await client.patch(
+        f"{GUESTS}/{guest['id']}", json={"sent": True}, headers=customer.headers
+    )
+    assert response.status_code == 200, response.text
+    assert response.json()["data"]["sent"] is True
+    moved = await client.patch(
+        f"{GUESTS}/{guest['id']}", json={"link": dangling}, headers=customer.headers
+    )
+    assert moved.status_code == 400, "gán link không tồn tại vẫn bị chặn"
+
+
+async def test_mau_dang_dung_chi_gom_mau_cua_link(client: AsyncClient, customer: Session) -> None:
+    link = await _link(client, customer, "Bạn bè")
+    await _guest(client, customer, link=link["id"])
+    tenant = (await GuestDocument.find_one({})).tenant_id  # type: ignore[union-attr]
+    await GuestDocument.get_motor_collection().update_many({}, {"$set": {"template": "noir"}})
+    await InviteLinkDocument.get_motor_collection().update_many(
+        {}, {"$set": {"template": "lienket"}}
+    )
+    usage = await build_guest_usage_reader().usage(tenant)
+    assert usage["count"] == 1
+    assert usage["templates"] == ["lienket"], "guest.template đã bỏ — không tính gói"

@@ -31,10 +31,6 @@ class GuestRepository(Protocol):
 
     async def count_by_tenant(self, tenant_ids: Sequence[UUID]) -> dict[UUID, int]: ...
 
-    async def usage(self, tenant_id: UUID) -> tuple[int, frozenset[str], frozenset[str]]:
-        """(số thiệp, mẫu riêng đang gán, nhóm khách đang có) của một xưởng."""
-        ...
-
     async def create(
         self, tenant_id: UUID, code: str, draft: GuestDraft, *, actor_id: UUID | None
     ) -> Guest:

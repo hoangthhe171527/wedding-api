@@ -12,6 +12,10 @@ class TemplateCatalog(Protocol):
 
     async def known_keys(self) -> frozenset[str]: ...
 
+    def canonical(self, key: str) -> str:
+        """Khoá mẫu đã nghỉ -> mẫu thay thế; khoá đang mở/rỗng giữ nguyên."""
+        ...
+
 
 class CatalogDefaults(Protocol):
     """Mặc định hệ thống: `group_templates`, `default_template` (module `template`)."""
@@ -32,7 +36,7 @@ class GuestCounter(Protocol):
 
 
 class GuestUsage(Protocol):
-    """Khách của xưởng đang dùng gì: `count`, `templates`, `groups` (module `guest`)."""
+    """Khách của xưởng đang dùng gì: `count`, `templates` của các link (module `guest`)."""
 
     async def usage(self, tenant_id: UUID) -> dict[str, Any]: ...
 

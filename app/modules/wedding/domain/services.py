@@ -170,7 +170,7 @@ def validate_content(content: WeddingContent, *, known_templates: frozenset[str]
 
 
 def plan_usage(
-    content: WeddingContent, *, guest_count: int, guest_templates: set[str]
+    content: WeddingContent, *, guest_count: int, link_templates: set[str]
 ) -> dict[str, object]:
     """Những gì đám cưới này đang dùng, dạng dữ liệu thuần gửi sang `billing`.
 
@@ -179,7 +179,7 @@ def plan_usage(
     thấy thì không tính.
     """
     main = main_key(content)
-    templates = {main, *(key for key in guest_templates if key)}
+    templates = {main, *(key for key in link_templates if key)}
     looks = [main_design(content)] + [
         content.designs[key] for key in sorted(templates) if key != main and key in content.designs
     ]
