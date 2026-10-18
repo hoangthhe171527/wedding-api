@@ -94,7 +94,11 @@ def _content_of(doc: WeddingDocument) -> WeddingContent:
         theme=_theme_of(doc.theme),
         card_design=_card_of(doc.card_design),
         schedule=tuple(ScheduleItem(time=item.time, label=item.label) for item in doc.schedule),
-        dress_code=DressCode(note=doc.dress_code.note, colors=tuple(doc.dress_code.colors)),
+        dress_code=DressCode(
+            show=doc.dress_code.show,
+            note=doc.dress_code.note,
+            colors=tuple(doc.dress_code.colors),
+        ),
         designs={key: _design_of(model) for key, model in doc.designs.items()},
     )
 
