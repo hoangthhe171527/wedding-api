@@ -17,9 +17,16 @@ class PublicPhotoLister:
     async def album(self, tenant_id: UUID) -> dict[str, list[str]]:
         """`full` và `small` cùng thứ tự — web thiệp ghép thành `srcset`."""
         items = await self._photos.list(tenant_id)
+
+        def positioned(url: str, focus_x: float, focus_y: float) -> str:
+            return f"{url}#focus={focus_x:g},{focus_y:g}"
+
         return {
-            "full": [photo_url(item.id) for item in items],
-            "small": [photo_url(item.id, small=True) for item in items],
+            "full": [positioned(photo_url(item.id), item.focus_x, item.focus_y) for item in items],
+            "small": [
+                positioned(photo_url(item.id, small=True), item.focus_x, item.focus_y)
+                for item in items
+            ],
         }
 
 

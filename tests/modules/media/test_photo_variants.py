@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import io
 from typing import Any
+from urllib.parse import parse_qs, urlsplit
 from uuid import UUID
 
 from httpx import AsyncClient
@@ -44,7 +45,9 @@ async def test_web_thiep_tra_ca_ban_nho(client: AsyncClient, customer: Session) 
     await _publish_free(client, customer)
     data = (await client.get(f"{API}/public/invitations/thiep-mien-phi")).json()["data"]
     assert len(data["photos_small"]) == len(data["photos"]) == 1
-    assert data["photos_small"][0].endswith("&w=sm")
+    small_url = urlsplit(data["photos_small"][0])
+    assert parse_qs(small_url.query)["w"] == ["sm"]
+    assert small_url.fragment == "focus=50,50"
 
 
 async def test_anh_cu_chua_co_ban_nho_van_doc_duoc_va_chay_bu(

@@ -21,6 +21,11 @@ class PhotoDocument(TenantScopedDocument):
     size: int
     width: int
     height: int
+    #: SHA-256 của byte ảnh đã chuẩn hoá; dùng để chặn tải trùng cùng một ảnh.
+    content_hash: str = ""
+    #: Điểm cần giữ trong khung object-fit: cover, tính theo phần trăm.
+    focus_x: float = 50.0
+    focus_y: float = 50.0
     #: Khoá object trong kho S3 (`photos/<xưởng>/<ảnh>`). Rỗng = ảnh cũ còn trong `photo_blobs`.
     storage_key: str = ""
     #: Bản nhỏ cho điện thoại (`<storage_key>.sm`). Rỗng = chưa có, đọc bản đầy đủ.

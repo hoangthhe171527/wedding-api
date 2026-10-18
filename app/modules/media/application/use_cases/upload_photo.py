@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import weakref
 from uuid import UUID
 
@@ -79,6 +80,15 @@ class UploadPhoto:
                 code="photo_unreadable",
             ) from None
 
+        content_hash = hashlib.sha256(image.data).hexdigest()
+        duplicate = await self._photos.find_by_hash(
+            actor.tenant_id, content_hash, excluding=replacing
+        )
+        if duplicate is not None:
+            raise ConflictError(
+                "Ảnh này đã có trong album. Hãy chọn một ảnh khác.", code="photo_duplicate"
+            )
+
         if replaced is not None:
             order = replaced.order
         elif existing:
@@ -86,7 +96,11 @@ class UploadPhoto:
         else:
             order = 0
         photo = await self._photos.create(
-            actor.tenant_id, image, order=order, actor_id=actor.user_id
+            actor.tenant_id,
+            image,
+            order=order,
+            actor_id=actor.user_id,
+            content_hash=content_hash,
         )
         if replaced is not None:
             # Tạo ảnh mới trước để lỗi xử lý/kho ảnh không làm mất ảnh cũ. ID mới

@@ -29,9 +29,16 @@ from app.modules.media.infrastructure.providers import (
     ListPhotosDep,
     MakeCoverDep,
     ReadPhotoDep,
+    ReorderPhotosDep,
+    UpdatePhotoFocusDep,
     UploadPhotoDep,
 )
-from app.modules.media.interfaces.http.schemas import PhotoOut, photos_out
+from app.modules.media.interfaces.http.schemas import (
+    PhotoFocusIn,
+    PhotoOrderIn,
+    PhotoOut,
+    photos_out,
+)
 
 router = APIRouter(tags=["Ảnh cưới"])
 
@@ -63,6 +70,34 @@ async def upload_photo(
     if not data:
         raise ValidationError("Tệp ảnh rỗng.", code="photo_empty")
     await upload.execute(actor, data, filename=file.filename or "ảnh")
+    return ok_list(photos_out(await listing.execute(actor)))
+
+
+@router.put(
+    "/photos/order",
+    response_model=ResponseEnvelope[list[PhotoOut]],
+    summary="Đổi thứ tự album ảnh cưới",
+)
+async def reorder_photos(
+    body: PhotoOrderIn, actor: StudioEditor, use_case: ReorderPhotosDep, listing: ListPhotosDep
+) -> dict[str, Any]:
+    await use_case.execute(actor, body.ids)
+    return ok_list(photos_out(await listing.execute(actor)))
+
+
+@router.patch(
+    "/photos/{photo_id}/focus",
+    response_model=ResponseEnvelope[list[PhotoOut]],
+    summary="Căn điểm trọng tâm của ảnh trong khung",
+)
+async def update_photo_focus(
+    photo_id: UUID,
+    body: PhotoFocusIn,
+    actor: StudioEditor,
+    use_case: UpdatePhotoFocusDep,
+    listing: ListPhotosDep,
+) -> dict[str, Any]:
+    await use_case.execute(actor, photo_id, focus_x=body.focus_x, focus_y=body.focus_y)
     return ok_list(photos_out(await listing.execute(actor)))
 
 
