@@ -21,10 +21,24 @@ class PhotoRepository(Protocol):
     async def count(self, tenant_id: UUID) -> int: ...
 
     async def create(
-        self, tenant_id: UUID, image: ProcessedImage, *, order: int, actor_id: UUID
+        self,
+        tenant_id: UUID,
+        image: ProcessedImage,
+        *,
+        order: int,
+        actor_id: UUID,
+        content_hash: str,
     ) -> Photo: ...
 
+    async def find_by_hash(
+        self, tenant_id: UUID, content_hash: str, *, excluding: UUID | None = None
+    ) -> Photo | None: ...
+
     async def set_order(self, tenant_id: UUID, photo_id: UUID, order: int) -> bool: ...
+
+    async def set_focus(
+        self, tenant_id: UUID, photo_id: UUID, focus_x: float, focus_y: float
+    ) -> bool: ...
 
     async def delete(self, tenant_id: UUID, photo_id: UUID) -> bool:
         """Xoá cứng cả siêu dữ liệu lẫn byte ảnh."""

@@ -6,6 +6,7 @@
 
 from __future__ import annotations
 
+import hashlib
 from datetime import timedelta
 from uuid import UUID
 
@@ -41,6 +42,9 @@ def _photo(doc: PhotoDocument) -> Photo:
         size=doc.size,
         width=doc.width,
         height=doc.height,
+        content_hash=doc.content_hash,
+        focus_x=doc.focus_x,
+        focus_y=doc.focus_y,
         created_at=doc.created_at,
     )
 
@@ -63,7 +67,13 @@ class BeaniePhotoRepository:
         return int(await PhotoDocument.scoped(tenant_id).count())
 
     async def create(
-        self, tenant_id: UUID, image: ProcessedImage, *, order: int, actor_id: UUID
+        self,
+        tenant_id: UUID,
+        image: ProcessedImage,
+        *,
+        order: int,
+        actor_id: UUID,
+        content_hash: str,
     ) -> Photo:
         meta = PhotoDocument(
             tenant_id=tenant_id,
@@ -72,6 +82,7 @@ class BeaniePhotoRepository:
             size=len(image.data),
             width=image.width,
             height=image.height,
+            content_hash=content_hash,
         ).stamp_created(actor_id)
         meta.storage_key = photo_key(tenant_id, meta.id)
         # Byte trước, siêu dữ liệu sau: album không bao giờ trỏ vào ảnh chưa có.
@@ -90,6 +101,41 @@ class BeaniePhotoRepository:
             raise
         return _photo(meta)
 
+    async def find_by_hash(
+        self, tenant_id: UUID, content_hash: str, *, excluding: UUID | None = None
+    ) -> Photo | None:
+        """Tìm ảnh trùng; đồng thời bù hash cho ảnh cũ chưa có trường này."""
+        query: dict[str, object] = {
+            "tenant_id": tenant_id,
+            "deleted_at": None,
+            "content_hash": content_hash,
+        }
+        if excluding is not None:
+            query["_id"] = {"$ne": excluding}
+        found = await PhotoDocument.find_one(query)
+        if found is not None:
+            return _photo(found)
+
+        legacy = await PhotoDocument.find(
+            {
+                "tenant_id": tenant_id,
+                "deleted_at": None,
+                "$or": [{"content_hash": ""}, {"content_hash": None}],
+            }
+        ).to_list()
+        for doc in legacy:
+            content = await self.read_content(doc.id)
+            if content is None:
+                continue
+            digest = hashlib.sha256(content[0]).hexdigest()
+            await PhotoDocument.get_motor_collection().update_one(
+                {"_id": doc.id, "tenant_id": tenant_id}, {"$set": {"content_hash": digest}}
+            )
+            if digest == content_hash and doc.id != excluding:
+                doc.content_hash = digest
+                return _photo(doc)
+        return None
+
     async def attach_small(self, photo_id: UUID, data: bytes) -> bool:
         """Gắn bản nhỏ cho ảnh cũ (chạy bù). False nếu ảnh không còn / chưa lên kho."""
         doc = await PhotoDocument.find_one({"_id": photo_id, "deleted_at": None})
@@ -106,6 +152,21 @@ class BeaniePhotoRepository:
         result = await PhotoDocument.get_motor_collection().update_one(
             {"_id": photo_id, "tenant_id": tenant_id, "deleted_at": None},
             {"$set": {"order": order, "updated_at": utc_now()}},
+        )
+        return bool(result.matched_count)
+
+    async def set_focus(
+        self, tenant_id: UUID, photo_id: UUID, focus_x: float, focus_y: float
+    ) -> bool:
+        result = await PhotoDocument.get_motor_collection().update_one(
+            {"_id": photo_id, "tenant_id": tenant_id, "deleted_at": None},
+            {
+                "$set": {
+                    "focus_x": focus_x,
+                    "focus_y": focus_y,
+                    "updated_at": utc_now(),
+                }
+            },
         )
         return bool(result.matched_count)
 

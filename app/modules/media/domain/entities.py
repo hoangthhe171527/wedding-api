@@ -26,6 +26,9 @@ class Photo:
     size: int
     width: int
     height: int
+    content_hash: str = ""
+    focus_x: float = 50.0
+    focus_y: float = 50.0
     created_at: datetime | None = None
 
 
