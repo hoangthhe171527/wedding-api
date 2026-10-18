@@ -112,6 +112,7 @@ class ScheduleItemIO(BaseModel):
 
 
 class DressCodeIO(BaseModel):
+    show: bool = True
     note: Annotated[str, Field(max_length=120)] = ""
     colors: Annotated[list[Annotated[str, Field(max_length=7)]], Field(max_length=12)] = Field(
         default_factory=list
@@ -345,6 +346,7 @@ class WeddingContentIO(BaseModel):
             card_design=self.card_design.to_domain(),
             schedule=tuple(ScheduleItem(time=i.time, label=i.label.strip()) for i in self.schedule),
             dress_code=DressCode(
+                show=self.dress_code.show,
                 note=self.dress_code.note.strip(),
                 colors=tuple(color.upper() for color in self.dress_code.colors),
             ),
@@ -378,7 +380,9 @@ class WeddingContentIO(BaseModel):
             card_design=CardDesignIO.of(content.card_design),
             schedule=[ScheduleItemIO(time=i.time, label=i.label) for i in content.schedule],
             dress_code=DressCodeIO(
-                note=content.dress_code.note, colors=list(content.dress_code.colors)
+                show=content.dress_code.show,
+                note=content.dress_code.note,
+                colors=list(content.dress_code.colors),
             ),
             designs={key: TemplateDesignIO.of(item) for key, item in content.designs.items()},
         )

@@ -31,12 +31,20 @@ async def test_luu_va_kiem_lich_trinh_dress_code(client: AsyncClient, customer: 
     await client.post(f"{API}/wedding/setup", json={"mode": "blank"}, headers=customer.headers)
     content = _content(await _wedding(client, customer))
     content["schedule"] = [{"time": "18:00", "label": "  Khai tiệc  "}]
-    content["dress_code"] = {"note": "Áo dài", "colors": ["#aa3344", "#FFFFFF"]}
+    content["dress_code"] = {
+        "show": False,
+        "note": "Áo dài",
+        "colors": ["#aa3344", "#FFFFFF"],
+    }
     saved = await client.put(f"{API}/wedding", json=content, headers=customer.headers)
     assert saved.status_code == 200, saved.text
     data = saved.json()["data"]
     assert data["schedule"] == [{"time": "18:00", "label": "Khai tiệc"}]
-    assert data["dress_code"] == {"note": "Áo dài", "colors": ["#AA3344", "#FFFFFF"]}
+    assert data["dress_code"] == {
+        "show": False,
+        "note": "Áo dài",
+        "colors": ["#AA3344", "#FFFFFF"],
+    }
 
     content["schedule"] = [{"time": "25:00", "label": "x"}]
     content["dress_code"] = {"note": "", "colors": ["đỏ"]}

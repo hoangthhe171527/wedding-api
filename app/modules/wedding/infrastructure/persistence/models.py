@@ -56,6 +56,7 @@ class ScheduleItemModel(BaseModel):
 
 
 class DressCodeModel(BaseModel):
+    show: bool = True
     note: str = ""
     colors: list[str] = Field(default_factory=list)
 

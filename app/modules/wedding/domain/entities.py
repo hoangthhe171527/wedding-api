@@ -63,6 +63,7 @@ class ScheduleItem:
 class DressCode:
     """Trang phục gợi ý: một dòng ghi chú + vài màu (`#RRGGBB`)."""
 
+    show: bool = True
     note: str = ""
     colors: tuple[str, ...] = ()
 
