@@ -13,8 +13,10 @@ import sys
 from typing import Any
 
 from app.modules.guest.domain.enums import GUEST_GROUPS
+from app.modules.media.domain.entities import PHOTO_FILTERS
 from app.modules.wedding.domain.design import DECOR_KEYS, FIELD_KEYS
 from app.modules.wedding.domain.enums import (
+    PHOTO_FRAMES,
     SITE_SECTIONS,
     THEME_AMBIENTS,
     THEME_FONTS,
@@ -35,6 +37,8 @@ def enums() -> dict[str, Any]:
         "guest_groups": list(GUEST_GROUPS),
         "open_styles": sorted(item.value for item in OpenStyle),
         "tones": sorted(item.value for item in Tone),
+        "photo_frames": list(PHOTO_FRAMES),
+        "photo_filters": list(PHOTO_FILTERS),
     }
 
 

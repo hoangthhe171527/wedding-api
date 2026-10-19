@@ -129,10 +129,15 @@ SITE_SECTIONS: Final[tuple[str, ...]] = (
     "wishes",
 )
 
+#: Khung ảnh của web thiệp, chọn riêng cho từng mẫu (`TemplateDesign.photo_frame`).
+#: `none` = ảnh hiện đúng như bố cục của mẫu. Khoá trùng `PHOTO_FRAMES` phía web.
+PHOTO_FRAMES: Final[tuple[str, ...]] = ("none", "thin", "gold", "polaroid", "arch", "circle")
+
 __all__ = [
     "CHECKLIST_IDS",
     "GUEST_GROUPS",
     "MAX_EVENTS",
+    "PHOTO_FRAMES",
     "SITE_SECTIONS",
     "THEME_AMBIENTS",
     "THEME_DENSITY_RANGE",

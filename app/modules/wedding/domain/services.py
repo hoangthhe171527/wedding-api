@@ -15,6 +15,7 @@ from app.modules.wedding.domain.enums import (
     CHECKLIST_IDS,
     GUEST_GROUPS,
     MAX_EVENTS,
+    PHOTO_FRAMES,
     SITE_SECTIONS,
     THEME_AMBIENTS,
     THEME_DENSITY_RANGE,
@@ -83,6 +84,8 @@ def _validate_look(
         add(f"{prefix}music_url", "Link nhạc nền phải bắt đầu bằng http:// hoặc https://.")
     if look.intro and not _UUID_RE.match(look.intro):
         add(f"{prefix}intro", "Video mở thiệp không hợp lệ.")
+    if look.photo_frame not in PHOTO_FRAMES:
+        add(f"{prefix}photo_frame", "Khung ảnh không có trong danh sách.")
     for path, messages in validate_design(
         look.card_design, known_templates=known_templates
     ).items():

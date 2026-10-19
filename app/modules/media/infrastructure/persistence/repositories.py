@@ -7,13 +7,16 @@
 from __future__ import annotations
 
 import hashlib
+from collections.abc import Mapping
+from dataclasses import asdict
 from datetime import timedelta
+from typing import Any
 from uuid import UUID
 
 from app.core.base_model import utc_now
 from app.core.logging import get_logger
 from app.core.storage import ObjectStore, get_object_store
-from app.modules.media.domain.entities import Photo, ProcessedImage
+from app.modules.media.domain.entities import ADJUST_FIELDS, Photo, PhotoAdjust, ProcessedImage
 from app.modules.media.infrastructure.persistence.models import PhotoBlobDocument, PhotoDocument
 
 log = get_logger(__name__)
@@ -45,6 +48,7 @@ def _photo(doc: PhotoDocument) -> Photo:
         content_hash=doc.content_hash,
         focus_x=doc.focus_x,
         focus_y=doc.focus_y,
+        adjust=PhotoAdjust(**{name: getattr(doc, name) for name in ADJUST_FIELDS}),
         created_at=doc.created_at,
     )
 
@@ -74,6 +78,7 @@ class BeaniePhotoRepository:
         order: int,
         actor_id: UUID,
         content_hash: str,
+        adjust: PhotoAdjust | None = None,
     ) -> Photo:
         meta = PhotoDocument(
             tenant_id=tenant_id,
@@ -83,6 +88,7 @@ class BeaniePhotoRepository:
             width=image.width,
             height=image.height,
             content_hash=content_hash,
+            **asdict(adjust or PhotoAdjust()),
         ).stamp_created(actor_id)
         meta.storage_key = photo_key(tenant_id, meta.id)
         # Byte trước, siêu dữ liệu sau: album không bao giờ trỏ vào ảnh chưa có.
@@ -167,6 +173,13 @@ class BeaniePhotoRepository:
                     "updated_at": utc_now(),
                 }
             },
+        )
+        return bool(result.matched_count)
+
+    async def set_adjust(self, tenant_id: UUID, photo_id: UUID, fields: Mapping[str, Any]) -> bool:
+        result = await PhotoDocument.get_motor_collection().update_one(
+            {"_id": photo_id, "tenant_id": tenant_id, "deleted_at": None},
+            {"$set": {**fields, "updated_at": utc_now()}},
         )
         return bool(result.matched_count)
 

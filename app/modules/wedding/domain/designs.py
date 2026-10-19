@@ -29,14 +29,19 @@ def main_key(content: WeddingContent) -> str:
     return content.default_template or FALLBACK_TEMPLATE
 
 
-def legacy_design(content: WeddingContent) -> TemplateDesign:
-    """Design dựng từ các trường cũ."""
+def legacy_design(content: WeddingContent, kept: TemplateDesign | None = None) -> TemplateDesign:
+    """Design dựng từ các trường cũ.
+
+    `kept`: design đang có của mẫu đó — giữ phần chỉ design mới có (`photo_frame`),
+    để client cũ ghi trường cũ không xoá mất khung ảnh.
+    """
     return TemplateDesign(
         theme=content.theme,
         card_design=content.card_design,
         intro=content.intro,
         open_style=content.open_style,
         music_url=content.music_url,
+        photo_frame=kept.photo_frame if kept is not None else "none",
     )
 
 
@@ -82,12 +87,12 @@ def normalize_designs(
             and content.designs.get(key) == stored.designs.get(key)
             and legacy != legacy_design(stored)
         ):
-            designs[key] = legacy
+            designs[key] = legacy_design(content, content.designs.get(key))
         else:
             designs.setdefault(key, legacy)
     else:
         designs = dict(stored.designs) if stored is not None else {}
-        designs[key] = legacy_design(content)
+        designs[key] = legacy_design(content, designs.get(key))
     return _mirror(content, designs)
 
 

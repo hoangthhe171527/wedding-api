@@ -144,3 +144,18 @@ def test_canonical_keys_doi_mau_da_nghi_sang_khoa_chuan() -> None:
         designs={"noir": TemplateDesign(theme=BLUE), "daile": TemplateDesign(theme=RED)}
     )
     assert canonical_keys(both, canonical).designs == {"daile": TemplateDesign(theme=RED)}
+
+
+def test_app_flutter_doi_truong_cu_giu_khung_anh() -> None:
+    framed = TemplateDesign(theme=RED, photo_frame="circle")
+    stored = _content(theme=RED, designs={"daile": framed})
+    incoming = _content(theme=BLUE, designs={"daile": framed})
+    out = normalize_designs(incoming, designs_sent=True, stored=stored)
+    assert out.designs["daile"].theme == BLUE
+    assert out.designs["daile"].photo_frame == "circle"
+
+
+def test_khung_anh_la_bi_bao_loi() -> None:
+    content = _content(designs={"daile": TemplateDesign(photo_frame="tim")})
+    errors = validate_content(content, known_templates=frozenset({"daile"}))
+    assert "designs.daile.photo_frame" in errors

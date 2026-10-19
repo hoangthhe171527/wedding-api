@@ -272,6 +272,8 @@ class TemplateDesignIO(BaseModel):
     intro: Annotated[str, Field(max_length=64)] = ""
     open_style: OpenStyle = OpenStyle.BY_TEMPLATE
     music_url: Url = ""
+    #: Khung ảnh riêng của mẫu này (`PHOTO_FRAMES`); kiểm ở domain.
+    photo_frame: Annotated[str, Field(max_length=16)] = "none"
 
     def to_domain(self) -> TemplateDesign:
         return TemplateDesign(
@@ -280,6 +282,7 @@ class TemplateDesignIO(BaseModel):
             intro=self.intro.strip(),
             open_style=self.open_style,
             music_url=self.music_url,
+            photo_frame=self.photo_frame,
         )
 
     @classmethod
@@ -290,6 +293,7 @@ class TemplateDesignIO(BaseModel):
             intro=item.intro,
             open_style=item.open_style,
             music_url=item.music_url,
+            photo_frame=item.photo_frame,
         )
 
 

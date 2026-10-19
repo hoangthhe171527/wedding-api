@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import hashlib
 import weakref
+from dataclasses import replace
 from uuid import UUID
 
 from app.core.config import get_settings
@@ -101,6 +102,10 @@ class UploadPhoto:
             order=order,
             actor_id=actor.user_id,
             content_hash=content_hash,
+            # Thay ảnh giữ màu, bộ lọc, chú thích; phần cắt khung theo ảnh cũ thì bỏ.
+            adjust=replace(replaced.adjust, zoom=1.0, rotate=0, flip=False)
+            if replaced is not None
+            else None,
         )
         if replaced is not None:
             # Tạo ảnh mới trước để lỗi xử lý/kho ảnh không làm mất ảnh cũ. ID mới

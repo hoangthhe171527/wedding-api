@@ -12,6 +12,7 @@ from app.modules.media.application.use_cases import (
     MakeCover,
     ReadPhoto,
     ReorderPhotos,
+    UpdatePhotoAdjust,
     UpdatePhotoFocus,
     UploadPhoto,
 )
@@ -43,6 +44,10 @@ def provide_reorder_photos() -> ReorderPhotos:
     return ReorderPhotos(BeaniePhotoRepository())
 
 
+def provide_update_photo_adjust() -> UpdatePhotoAdjust:
+    return UpdatePhotoAdjust(BeaniePhotoRepository())
+
+
 def provide_update_photo_focus() -> UpdatePhotoFocus:
     return UpdatePhotoFocus(BeaniePhotoRepository())
 
@@ -53,6 +58,7 @@ MakeCoverDep = Annotated[MakeCover, Depends(provide_make_cover)]
 DeletePhotoDep = Annotated[DeletePhoto, Depends(provide_delete_photo)]
 ReadPhotoDep = Annotated[ReadPhoto, Depends(provide_read_photo)]
 ReorderPhotosDep = Annotated[ReorderPhotos, Depends(provide_reorder_photos)]
+UpdatePhotoAdjustDep = Annotated[UpdatePhotoAdjust, Depends(provide_update_photo_adjust)]
 UpdatePhotoFocusDep = Annotated[UpdatePhotoFocus, Depends(provide_update_photo_focus)]
 
 __all__ = [
@@ -61,6 +67,7 @@ __all__ = [
     "MakeCoverDep",
     "ReadPhotoDep",
     "ReorderPhotosDep",
+    "UpdatePhotoAdjustDep",
     "UpdatePhotoFocusDep",
     "UploadPhotoDep",
 ]

@@ -26,6 +26,17 @@ class PhotoDocument(TenantScopedDocument):
     #: Điểm cần giữ trong khung object-fit: cover, tính theo phần trăm.
     focus_x: float = 50.0
     focus_y: float = 50.0
+    #: Chỉnh ảnh không phá huỷ (`PhotoAdjust`) — web thiệp áp lúc hiển thị.
+    zoom: float = 1.0
+    rotate: int = 0
+    flip: bool = False
+    brightness: int = 0
+    contrast: int = 0
+    saturation: int = 0
+    warmth: int = 0
+    filter: str = "goc"
+    filter_strength: int = 100
+    caption: str = ""
     #: Khoá object trong kho S3 (`photos/<xưởng>/<ảnh>`). Rỗng = ảnh cũ còn trong `photo_blobs`.
     storage_key: str = ""
     #: Bản nhỏ cho điện thoại (`<storage_key>.sm`). Rỗng = chưa có, đọc bản đầy đủ.

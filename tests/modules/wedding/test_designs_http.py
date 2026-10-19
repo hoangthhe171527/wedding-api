@@ -104,3 +104,40 @@ async def test_luu_mau_chinh_da_nghi_tra_ve_khoa_chuan(
     assert "noir" not in data["designs"]
     assert data["designs"]["daile"]["theme"]["accent"] == "#AA0000"
     assert data["theme"]["accent"] == "#AA0000"
+
+
+async def test_khung_anh_luu_rieng_tung_mau(client: AsyncClient, customer: Session) -> None:
+    content = _content(await _setup(client, customer))
+    content["default_template"] = "daile"
+    content["designs"] = {"daile": {**_look("#AA0000"), "photo_frame": "polaroid"}}
+    saved = await client.put(f"{API}/wedding", json=content, headers=customer.headers)
+    assert saved.status_code == 200, saved.text
+    data = saved.json()["data"]
+    assert data["designs"]["daile"]["photo_frame"] == "polaroid"
+    assert "photo_frame" not in data, "khung ảnh chỉ nằm trong design, không có trường cũ"
+
+
+async def test_khung_anh_ngoai_danh_sach_bi_tu_choi(client: AsyncClient, customer: Session) -> None:
+    content = _content(await _setup(client, customer))
+    content["default_template"] = "daile"
+    content["designs"] = {"daile": {**_look("#AA0000"), "photo_frame": "heart"}}
+    response = await client.put(f"{API}/wedding", json=content, headers=customer.headers)
+    assert response.status_code == 400
+    assert "designs.daile.photo_frame" in response.json()["errors"]
+
+
+async def test_client_cu_doi_mau_khong_xoa_khung_anh(
+    client: AsyncClient, customer: Session
+) -> None:
+    content = _content(await _setup(client, customer))
+    content["default_template"] = "daile"
+    content["designs"] = {"daile": {**_look("#AA0000"), "photo_frame": "arch"}}
+    first = await client.put(f"{API}/wedding", json=content, headers=customer.headers)
+    assert first.status_code == 200, first.text
+    legacy = {key: value for key, value in content.items() if key != "designs"}
+    legacy["theme"] = {"accent": "#00AA00"}
+    second = await client.put(f"{API}/wedding", json=legacy, headers=customer.headers)
+    assert second.status_code == 200, second.text
+    look = second.json()["data"]["designs"]["daile"]
+    assert look["theme"]["accent"] == "#00AA00"
+    assert look["photo_frame"] == "arch"
