@@ -36,6 +36,7 @@ PUBLIC_WEDDING_KEYS: Final[frozenset[str]] = frozenset(
         "card_design",
         "schedule",
         "dress_code",
+        "photo_frame",
         "slug",
         "site_url",
     }
@@ -43,13 +44,21 @@ PUBLIC_WEDDING_KEYS: Final[frozenset[str]] = frozenset(
 
 
 #: Trường giao diện lấy từ design của mẫu đang hiện (bản chép `TemplateDesign` của `wedding`).
-LOOK_KEYS: Final[tuple[str, ...]] = ("theme", "card_design", "intro", "open_style", "music_url")
+LOOK_KEYS: Final[tuple[str, ...]] = (
+    "theme",
+    "card_design",
+    "intro",
+    "open_style",
+    "music_url",
+    "photo_frame",
+)
 _EMPTY_LOOK: Final[dict[str, Any]] = {
     "theme": {},
     "card_design": {"enabled": False, "base": "", "layers": []},
     "intro": "",
     "open_style": "",
     "music_url": "",
+    "photo_frame": "none",
 }
 
 

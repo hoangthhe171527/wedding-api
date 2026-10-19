@@ -4,6 +4,9 @@
 |--------|------------------------------------|-----------------------|
 | GET    | /api/v1/photos                     | `studio.manage`       |
 | POST   | /api/v1/photos                     | `studio.manage`       |
+| PUT    | /api/v1/photos/order               | `studio.manage`       |
+| PATCH  | /api/v1/photos/{id}/focus          | `studio.manage`       |
+| PATCH  | /api/v1/photos/{id}/adjust         | `studio.manage`       |
 | POST   | /api/v1/photos/{id}/replace        | `studio.manage`       |
 | POST   | /api/v1/photos/{id}/cover          | `studio.manage`       |
 | DELETE | /api/v1/photos/{id}                | `studio.manage`       |
@@ -30,10 +33,12 @@ from app.modules.media.infrastructure.providers import (
     MakeCoverDep,
     ReadPhotoDep,
     ReorderPhotosDep,
+    UpdatePhotoAdjustDep,
     UpdatePhotoFocusDep,
     UploadPhotoDep,
 )
 from app.modules.media.interfaces.http.schemas import (
+    PhotoAdjustIn,
     PhotoFocusIn,
     PhotoOrderIn,
     PhotoOut,
@@ -98,6 +103,23 @@ async def update_photo_focus(
     listing: ListPhotosDep,
 ) -> dict[str, Any]:
     await use_case.execute(actor, photo_id, focus_x=body.focus_x, focus_y=body.focus_y)
+    return ok_list(photos_out(await listing.execute(actor)))
+
+
+@router.patch(
+    "/photos/{photo_id}/adjust",
+    response_model=ResponseEnvelope[list[PhotoOut]],
+    summary="Chỉnh ảnh: căn, phóng to, xoay, lật, màu, bộ lọc, chú thích",
+)
+async def update_photo_adjust(
+    photo_id: UUID,
+    body: PhotoAdjustIn,
+    actor: StudioEditor,
+    use_case: UpdatePhotoAdjustDep,
+    listing: ListPhotosDep,
+) -> dict[str, Any]:
+    """Chỉ ghi các trường có trong thân request; byte ảnh không đổi."""
+    await use_case.execute(actor, photo_id, body.model_dump(exclude_unset=True))
     return ok_list(photos_out(await listing.execute(actor)))
 
 

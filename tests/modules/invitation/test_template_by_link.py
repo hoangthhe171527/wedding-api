@@ -103,3 +103,20 @@ async def test_khach_chua_xep_link_thay_mau_chinh(client: AsyncClient, customer:
     opened = await client.get(f"{PUBLIC}?g={code}")
     assert opened.status_code == 200, opened.text
     assert opened.json()["data"]["template"] == "daile"
+
+
+def test_khung_anh_theo_design_cua_mau_dang_hien() -> None:
+    from app.modules.invitation.domain.services import public_wedding
+
+    look = {"theme": {}, "card_design": {}, "intro": "", "open_style": "", "music_url": ""}
+    snapshot = {
+        "default_template": "daile",
+        "theme": {},
+        "designs": {
+            "daile": {**look, "photo_frame": "gold"},
+            "other": {**look},
+        },
+    }
+    assert public_wedding(apply_design(snapshot, "daile"))["photo_frame"] == "gold"
+    assert apply_design(snapshot, "other")["photo_frame"] == "none"
+    assert apply_design(snapshot, "chua-design")["photo_frame"] == "none"

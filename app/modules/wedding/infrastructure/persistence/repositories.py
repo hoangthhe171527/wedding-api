@@ -52,6 +52,7 @@ def _design_of(model: Any) -> TemplateDesign:
         intro=model.intro,
         open_style=OpenStyle(model.open_style),
         music_url=model.music_url,
+        photo_frame=model.photo_frame,
     )
 
 

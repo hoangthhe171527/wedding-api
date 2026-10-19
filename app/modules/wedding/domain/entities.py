@@ -156,6 +156,8 @@ class TemplateDesign:
     intro: str = ""
     open_style: OpenStyle = OpenStyle.BY_TEMPLATE
     music_url: str = ""
+    #: Khung ảnh bìa và album (`PHOTO_FRAMES`). Chỉ có trong design — không có trường cũ.
+    photo_frame: str = "none"
 
 
 @dataclass(frozen=True, slots=True)

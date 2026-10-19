@@ -5,6 +5,7 @@ from __future__ import annotations
 from uuid import UUID
 
 from app.modules.media.application.support import photo_url
+from app.modules.media.domain.fragment import photo_fragment
 from app.modules.media.infrastructure.persistence.repositories import BeaniePhotoRepository
 
 
@@ -15,18 +16,14 @@ class PublicPhotoLister:
         self._photos = BeaniePhotoRepository()
 
     async def album(self, tenant_id: UUID) -> dict[str, list[str]]:
-        """`full` và `small` cùng thứ tự — web thiệp ghép thành `srcset`."""
+        """`full` và `small` cùng thứ tự — web thiệp ghép thành `srcset`.
+
+        Điểm căn và chỉnh ảnh đi trong fragment (`domain/fragment.py`).
+        """
         items = await self._photos.list(tenant_id)
-
-        def positioned(url: str, focus_x: float, focus_y: float) -> str:
-            return f"{url}#focus={focus_x:g},{focus_y:g}"
-
         return {
-            "full": [positioned(photo_url(item.id), item.focus_x, item.focus_y) for item in items],
-            "small": [
-                positioned(photo_url(item.id, small=True), item.focus_x, item.focus_y)
-                for item in items
-            ],
+            "full": [f"{photo_url(item.id)}#{photo_fragment(item)}" for item in items],
+            "small": [f"{photo_url(item.id, small=True)}#{photo_fragment(item)}" for item in items],
         }
 
 

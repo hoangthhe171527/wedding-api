@@ -116,5 +116,21 @@
     "family",
     "formal",
     "friends"
+  ],
+  "photo_frames": [
+    "none",
+    "thin",
+    "gold",
+    "polaroid",
+    "arch",
+    "circle"
+  ],
+  "photo_filters": [
+    "goc",
+    "nga",
+    "phim",
+    "trong",
+    "hoang",
+    "den"
   ]
 }

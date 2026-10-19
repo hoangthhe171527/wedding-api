@@ -141,6 +141,7 @@ class TemplateDesignModel(BaseModel):
     intro: str = ""
     open_style: str = ""
     music_url: str = ""
+    photo_frame: str = "none"
 
 
 class WeddingDocument(TenantScopedDocument):
