@@ -230,7 +230,7 @@ _ORIGINAL_BLUEPRINTS: Final[tuple[Template, ...]] = (
 #: Sáu khoá Độc bản 2026 — đã cho nghỉ, chỉ còn để thiệp/link đã gán vẫn hợp lệ.
 DOC_BAN_2026_KEYS: Final[tuple[str, ...]] = tuple(item.key for item in _ORIGINAL_BLUEPRINTS)
 
-#: Mẫu DUY NHẤT của catalog công khai: cung điện đỏ son – kim hoàng dựng 3D.
+#: Mẫu DUY NHẤT ban đầu của catalog công khai: cung điện đỏ son – kim hoàng dựng 3D.
 #: Dòng "Cung đình lộng lẫy" (ROYAL) đúng chất hoàng cung; bố cục LUX là bố cục 3D
 #: (three.js) sẵn có — không cần thêm enum mới (web vẽ theo khoá `daile`).
 _DAILE_BLUEPRINT: Final[Template] = _t(
@@ -238,8 +238,15 @@ _DAILE_BLUEPRINT: Final[Template] = _t(
 )
 DAILE_TEMPLATE_KEY: Final[str] = _DAILE_BLUEPRINT.key
 
-#: Khoá mẫu đang mở cho khách — đúng một mẫu.
-ORIGINAL_TEMPLATE_KEYS: Final[tuple[str, ...]] = (DAILE_TEMPLATE_KEY,)
+#: Mẫu thứ hai: "Étoile Trắng Xanh" — Tối Giản Sang Trọng Hiện Đại (White & Emerald Green)
+#: Photobook hôn lễ 3D lật trang theo cuộn chuột, intro nhà kính hoa lan trắng tách đôi.
+_ETOILE_BLUEPRINT: Final[Template] = _t(
+    "etoile", "Étoile Trắng Xanh", Family.MODERN, Layout.EDITORIAL, Tone.FAMILY, new=True
+)
+ETOILE_TEMPLATE_KEY: Final[str] = _ETOILE_BLUEPRINT.key
+
+#: Khoá các mẫu đang mở cho khách: Đại Lễ Hỷ Sự và Étoile Trắng Xanh.
+ORIGINAL_TEMPLATE_KEYS: Final[tuple[str, ...]] = (DAILE_TEMPLATE_KEY, ETOILE_TEMPLATE_KEY)
 
 #: Mẫu đang mở đều miễn phí để app không hiển thị mua gói/IAP. Thanh toán dịch vụ
 #: (nếu có) chỉ thực hiện trên web, tách khỏi luồng chọn mẫu iOS.
@@ -286,17 +293,18 @@ _LEGACY_BLUEPRINTS: Final[tuple[Template, ...]] = (
     _SIGNATURE_BLUEPRINTS + _STORY_BLUEPRINTS + _MODERN_BLUEPRINTS + _BLUEPRINTS
 )
 
-#: `daile` đứng đầu (thứ tự 0) — mẫu duy nhất còn mở cho khách.
+#: `daile` đứng đầu (thứ tự 0), `etoile` thứ hai (thứ tự 1).
 TEMPLATE_BLUEPRINTS: Final[tuple[Template, ...]] = (
     _ordered(_DAILE_BLUEPRINT, 0),
-    *(_ordered(item, index + 1) for index, item in enumerate(_ORIGINAL_BLUEPRINTS)),
+    _ordered(_ETOILE_BLUEPRINT, 1),
+    *(_ordered(item, index + 2) for index, item in enumerate(_ORIGINAL_BLUEPRINTS)),
     *(_ordered(item, 0) for item in _SIGNATURE_BLUEPRINTS),
     *(_ordered(item, 0) for item in _STORY_BLUEPRINTS),
-    *(_ordered(item, index + 1) for index, item in enumerate(_MODERN_BLUEPRINTS)),
-    *(_ordered(item, (index + 1) * 10) for index, item in enumerate(_BLUEPRINTS)),
+    *(_ordered(item, index + 2) for index, item in enumerate(_MODERN_BLUEPRINTS)),
+    *(_ordered(item, (index + 2) * 10) for index, item in enumerate(_BLUEPRINTS)),
 )
 
-#: Mẫu mặc định cho khách chung (link không mã) — mẫu duy nhất.
+#: Mẫu mặc định cho khách chung (link không mã) — giữ nguyên Đại Lễ Hỷ Sự để không ảnh hưởng link cũ.
 DEFAULT_TEMPLATE_KEY: Final[str] = DAILE_TEMPLATE_KEY
 
 #: Mẫu cho nghỉ sau đợt rà bộ mẫu: trùng khuôn với mẫu khác (chỉ đổi màu) mà không có
@@ -356,6 +364,7 @@ __all__ = [
     "DAILE_TEMPLATE_KEY",
     "DEFAULT_TEMPLATE_KEY",
     "DOC_BAN_2026_KEYS",
+    "ETOILE_TEMPLATE_KEY",
     "FREE_KEYS",
     "LEGACY_TEMPLATE_REPLACEMENTS",
     "ORIGINAL_TEMPLATE_KEYS",

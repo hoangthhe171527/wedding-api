@@ -37,9 +37,9 @@ def test_chi_cho_nghi_mau_co_that_va_khong_dung_mau_mien_phi() -> None:
 
 def test_catalog_cong_khai_chi_con_dai_le() -> None:
     alive = [item for item in TEMPLATE_BLUEPRINTS if item.key not in RETIRED_KEYS]
-    assert [item.key for item in alive] == ["daile"]
-    assert ORIGINAL_TEMPLATE_KEYS == ("daile",)
-    assert set(FREE_KEYS) == {"daile"}
+    assert [item.key for item in alive] == ["daile", "etoile"]
+    assert ORIGINAL_TEMPLATE_KEYS == ("daile", "etoile")
+    assert set(FREE_KEYS) == {"daile", "etoile"}
     assert DEFAULT_TEMPLATE_KEY == DAILE_TEMPLATE_KEY == "daile"
     daile = alive[0]
     assert daile.name == "Đại Lễ Hỷ Sự"

@@ -18,7 +18,7 @@ def _signature() -> list[Template]:
 
 def test_dai_le_la_mau_cung_dinh_mien_phi_duy_nhat() -> None:
     daile = next(item for item in TEMPLATE_BLUEPRINTS if item.key == "daile")
-    assert ORIGINAL_TEMPLATE_KEYS == ("daile",)
+    assert "daile" in ORIGINAL_TEMPLATE_KEYS
     assert daile.family is Family.ROYAL
     assert daile.tier is Tier.FREE
     assert FAMILY_LABELS[Family.ROYAL] == "Cung đình lộng lẫy"
