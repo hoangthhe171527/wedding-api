@@ -224,3 +224,25 @@ async def test_nguoi_duoc_moi_qua_dai(client: AsyncClient, customer: Session) ->
         LINKS, json={"name": "Nhóm", "greeting": "x" * 121}, headers=customer.headers
     )
     assert long.status_code == 422
+
+
+async def test_da_xuat_ban_khong_duoc_gan_mau_vuot_goi_qua_link(
+    client: AsyncClient, customer: Session
+) -> None:
+    await _publish(client, customer, plan=None)
+    await set_template_tier(client, "etoile", "premium")
+
+    blocked_create = await client.post(
+        LINKS, json={"name": "VIP", "template": "etoile"}, headers=customer.headers
+    )
+    assert blocked_create.status_code == 409
+    assert blocked_create.json()["code"] == "plan_required"
+
+    ok_link = await _create(client, customer, name="Đồng nghiệp", template="daile")
+    blocked_update = await client.put(
+        f"{LINKS}/{ok_link['id']}",
+        json={"name": "Đồng nghiệp", "template": "etoile"},
+        headers=customer.headers,
+    )
+    assert blocked_update.status_code == 409
+    assert blocked_update.json()["code"] == "plan_required"

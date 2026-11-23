@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
+from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
@@ -15,16 +16,17 @@ from appstoreserverlibrary.signed_data_verifier import (
 from cryptography import x509
 from cryptography.hazmat.primitives.serialization import Encoding
 
-from app.core.config import get_settings
+from app.core.config import Environment, get_settings
 from app.core.errors import ServiceUnavailableError, ValidationError
 from app.modules.billing.application.ports import VerifiedAppleTransaction
 from app.modules.billing.domain.enums import Plan
 
 
-def _root_certificates() -> list[bytes]:
+@lru_cache(maxsize=1)
+def _root_certificates() -> tuple[bytes, ...]:
     path = Path(__file__).with_name("certs") / "apple_root_ca_g3.pem"
     certificate = x509.load_pem_x509_certificate(path.read_bytes())
-    return [certificate.public_bytes(Encoding.DER)]
+    return (certificate.public_bytes(Encoding.DER),)
 
 
 class AppleIapVerifier:
@@ -46,6 +48,16 @@ class AppleIapVerifier:
                 "Giao dịch Apple không đúng định dạng.", code="apple_iap_invalid"
             ) from exc
 
+        if (
+            environment is AppleEnvironment.SANDBOX
+            and cfg.ENV is Environment.PRODUCTION
+            and not cfg.APPLE_IAP_ALLOW_SANDBOX
+        ):
+            raise ValidationError(
+                "Giao dịch Sandbox không được chấp nhận trên môi trường production.",
+                code="apple_iap_sandbox_disallowed",
+            )
+
         if environment is AppleEnvironment.PRODUCTION and cfg.APPLE_IAP_APPLE_ID is None:
             raise ServiceUnavailableError(
                 "Thanh toán App Store chưa được cấu hình hoàn chỉnh.",
@@ -54,7 +66,7 @@ class AppleIapVerifier:
 
         try:
             verifier = SignedDataVerifier(
-                _root_certificates(),
+                list(_root_certificates()),
                 cfg.APPLE_IAP_ENABLE_ONLINE_CHECKS,
                 environment,
                 cfg.APPLE_IAP_BUNDLE_ID,

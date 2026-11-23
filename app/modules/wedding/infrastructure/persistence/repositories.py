@@ -205,10 +205,18 @@ class BeanieWeddingRepository:
     async def save_publication(
         self, tenant_id: UUID, *, slug: str, published: bool, actor_id: UUID
     ) -> Wedding | None:
+        prev = await WeddingDocument.get_motor_collection().find_one(
+            {"tenant_id": tenant_id, "deleted_at": None}, {"slug": 1}
+        )
         try:
-            return await self._update(tenant_id, {"slug": slug, "published": published}, actor_id)
+            updated = await self._update(
+                tenant_id, {"slug": slug, "published": published}, actor_id
+            )
         except DuplicateKeyError as exc:
             raise SlugTakenError from exc
+        if prev and prev.get("slug") and str(prev["slug"]) != slug:
+            await cache.delete(PUBLISHED_CACHE, str(prev["slug"]))
+        return updated
 
     async def list_all(self) -> list[Wedding]:
         # Ngoại lệ có chủ ý với §0.4: màn giám sát của đội vận hành, quyền

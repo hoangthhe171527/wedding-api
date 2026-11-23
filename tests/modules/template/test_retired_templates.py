@@ -67,8 +67,9 @@ async def test_khach_chi_thay_dai_le_quan_tri_thay_ca_mau_nghi(
     seen_by_admin = await client.get(f"{API}/templates", headers=admin.headers)
     customer_ids = [item["id"] for item in seen_by_customer.json()["data"]]
     admin_rows = {item["id"]: item for item in seen_by_admin.json()["data"]}
-    assert customer_ids == ["daile"]
+    assert customer_ids == ["daile", "etoile"]
     assert admin_rows["daile"]["is_active"] is True
+    assert admin_rows["etoile"]["is_active"] is True
     assert all(admin_rows[key]["is_active"] is False for key in RETIRED_KEYS)
 
 
@@ -76,9 +77,9 @@ async def test_csdl_cu_tat_bo_doc_ban_va_mau_tung_bat_lai_dung_mot_lan(
     client: AsyncClient, admin: Session
 ) -> None:
     """CSDL đã qua đợt Độc bản 2026: `db*` đang bật, chưa có dấu đợt mới; một mẫu cũ
-    đội vận hành từng bật lại. Seed tắt cả hai đúng một lần, `daile` được tạo và bật."""
+    đội vận hành từng bật lại. Seed tắt cả hai đúng một lần, `daile` và `etoile` được bật."""
     collection = TemplateDocument.get_motor_collection()
-    await collection.delete_many({"key": "daile"})
+    await collection.delete_many({"key": {"$in": ["daile", "etoile"]}})
     await collection.update_many(
         {"key": {"$in": [*DOC_BAN_2026_KEYS, "vogue"]}},
         {"$set": {"is_active": True}, "$unset": {"single_catalog_v1": ""}},
@@ -88,7 +89,7 @@ async def test_csdl_cu_tat_bo_doc_ban_va_mau_tung_bat_lai_dung_mot_lan(
 
     rows = (await client.get(f"{API}/templates", headers=admin.headers)).json()["data"]
     active = {row["id"] for row in rows if row["is_active"]}
-    assert active == {"daile"}
+    assert active == {"daile", "etoile"}
 
 
 async def test_bat_lai_thi_seed_khong_tat_lan_nua(client: AsyncClient, admin: Session) -> None:

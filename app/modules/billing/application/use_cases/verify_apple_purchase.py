@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from dataclasses import dataclass
 
 from app.core import audit
@@ -54,7 +55,7 @@ class VerifyApplePurchase:
         transaction_id: str,
         signed_transaction: str,
     ) -> ApplePurchaseGrant:
-        verified = self._verifier.verify(signed_transaction)
+        verified = await asyncio.to_thread(self._verifier.verify, signed_transaction)
         if verified.product_id != product_id or verified.transaction_id != transaction_id:
             raise ConflictError(
                 "Thông tin giao dịch không khớp với Apple.",
@@ -77,6 +78,11 @@ class VerifyApplePurchase:
                 tenant_id=actor.tenant_id,
                 purchase_date=verified.purchase_date,
             )
+            if purchase.tenant_id != actor.tenant_id:
+                raise ConflictError(
+                    "Giao dịch Apple đã được gắn với tài khoản khác.",
+                    code="apple_iap_already_linked",
+                )
 
         current = await current_plan(self._orders, actor.tenant_id)
         if PLAN_RANK[current] >= PLAN_RANK[purchase.plan]:

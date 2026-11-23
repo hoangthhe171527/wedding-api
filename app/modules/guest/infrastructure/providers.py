@@ -6,7 +6,7 @@ from typing import Annotated
 
 from fastapi import Depends
 
-from app.modules.guest.application.ports import PlanGuestLimit
+from app.modules.guest.application.ports import PlanGuestLimit, PlanLinkGate
 from app.modules.guest.application.use_cases import (
     CreateGuest,
     CreateLink,
@@ -39,6 +39,12 @@ def _plan_guest_limit() -> PlanGuestLimit:
     from app.modules.wedding import build_published_guest_limit
 
     return build_published_guest_limit()
+
+
+def _plan_link_gate() -> PlanLinkGate:
+    from app.modules.wedding import build_published_link_gate
+
+    return build_published_link_gate()
 
 
 def provide_create_guest() -> CreateGuest:
@@ -82,11 +88,15 @@ def provide_list_links() -> ListLinks:
 
 
 def provide_create_link() -> CreateLink:
-    return CreateLink(BeanieInviteLinkRepository(), build_template_catalog_reader())
+    return CreateLink(
+        BeanieInviteLinkRepository(), build_template_catalog_reader(), _plan_link_gate()
+    )
 
 
 def provide_update_link() -> UpdateLink:
-    return UpdateLink(BeanieInviteLinkRepository(), build_template_catalog_reader())
+    return UpdateLink(
+        BeanieInviteLinkRepository(), build_template_catalog_reader(), _plan_link_gate()
+    )
 
 
 def provide_delete_link() -> DeleteLink:

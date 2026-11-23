@@ -13,6 +13,7 @@ from __future__ import annotations
 from typing import Any
 from uuid import UUID
 
+from app.core import cache
 from app.core.base_model import utc_now
 from app.modules.billing.application.support import current_plan
 from app.modules.billing.application.use_cases import CheckPlan
@@ -20,8 +21,13 @@ from app.modules.billing.domain.entities import Usage
 from app.modules.billing.domain.enums import PLAN_RANK, PLAN_SPECS, PaymentMethod, Plan
 from app.modules.billing.domain.services import generate_order_code
 from app.modules.billing.infrastructure.external.plan_waiver import AdminPlanWaiver
-from app.modules.billing.infrastructure.persistence.repositories import BeanieOrderRepository
+from app.modules.billing.infrastructure.persistence.repositories import (
+    ENTITLEMENT_CACHE,
+    BeanieOrderRepository,
+)
 from app.modules.template import build_template_catalog_reader
+
+ENTITLEMENT_TTL_SECONDS = 300
 
 
 class PlanGate:
@@ -72,15 +78,20 @@ class EntitlementReader:
         self._waiver = AdminPlanWaiver()
 
     async def plan_for(self, tenant_id: UUID) -> dict[str, Any]:
+        cached = await cache.get_json(ENTITLEMENT_CACHE, str(tenant_id))
+        if isinstance(cached, dict) and "plan" in cached:
+            return cached
         plan = await current_plan(self._orders, tenant_id, self._waiver)
         spec = PLAN_SPECS[plan]
-        return {
+        result = {
             "plan": plan.value,
             "label": spec.label,
             "guest_limit": spec.guest_limit,
             "per_guest_links": spec.per_guest_links,
             "remove_badge": spec.remove_badge,
         }
+        await cache.set_json(result, ENTITLEMENT_TTL_SECONDS, ENTITLEMENT_CACHE, str(tenant_id))
+        return result
 
 
 class PlanGranter:

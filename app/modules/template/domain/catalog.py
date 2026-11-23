@@ -245,8 +245,16 @@ _ETOILE_BLUEPRINT: Final[Template] = _t(
 )
 ETOILE_TEMPLATE_KEY: Final[str] = _ETOILE_BLUEPRINT.key
 
-#: Khoá các mẫu đang mở cho khách: Đại Lễ Hỷ Sự và Étoile Trắng Xanh.
-ORIGINAL_TEMPLATE_KEYS: Final[tuple[str, ...]] = (DAILE_TEMPLATE_KEY, ETOILE_TEMPLATE_KEY)
+#: Toàn bộ mẫu đang mở cho khách mới (khai báo một nơi duy nhất; thứ tự = sort_order).
+ACTIVE_TEMPLATE_BLUEPRINTS: Final[tuple[Template, ...]] = (
+    _DAILE_BLUEPRINT,
+    _ETOILE_BLUEPRINT,
+)
+
+#: Khoá các mẫu đang mở cho khách: suy trực tiếp từ `ACTIVE_TEMPLATE_BLUEPRINTS`.
+ORIGINAL_TEMPLATE_KEYS: Final[tuple[str, ...]] = tuple(
+    item.key for item in ACTIVE_TEMPLATE_BLUEPRINTS
+)
 
 #: Mẫu đang mở đều miễn phí để app không hiển thị mua gói/IAP. Thanh toán dịch vụ
 #: (nếu có) chỉ thực hiện trên web, tách khỏi luồng chọn mẫu iOS.
@@ -293,18 +301,19 @@ _LEGACY_BLUEPRINTS: Final[tuple[Template, ...]] = (
     _SIGNATURE_BLUEPRINTS + _STORY_BLUEPRINTS + _MODERN_BLUEPRINTS + _BLUEPRINTS
 )
 
-#: `daile` đứng đầu (thứ tự 0), `etoile` thứ hai (thứ tự 1).
+_ACTIVE_COUNT: Final[int] = len(ACTIVE_TEMPLATE_BLUEPRINTS)
+
+#: Các mẫu đang mở xếp đầu theo thứ tự khai báo (`0, 1, 2, ...`), theo sau là mẫu đã nghỉ.
 TEMPLATE_BLUEPRINTS: Final[tuple[Template, ...]] = (
-    _ordered(_DAILE_BLUEPRINT, 0),
-    _ordered(_ETOILE_BLUEPRINT, 1),
-    *(_ordered(item, index + 2) for index, item in enumerate(_ORIGINAL_BLUEPRINTS)),
+    *(_ordered(item, index) for index, item in enumerate(ACTIVE_TEMPLATE_BLUEPRINTS)),
+    *(_ordered(item, index + _ACTIVE_COUNT) for index, item in enumerate(_ORIGINAL_BLUEPRINTS)),
     *(_ordered(item, 0) for item in _SIGNATURE_BLUEPRINTS),
     *(_ordered(item, 0) for item in _STORY_BLUEPRINTS),
-    *(_ordered(item, index + 2) for index, item in enumerate(_MODERN_BLUEPRINTS)),
-    *(_ordered(item, (index + 2) * 10) for index, item in enumerate(_BLUEPRINTS)),
+    *(_ordered(item, index + _ACTIVE_COUNT) for index, item in enumerate(_MODERN_BLUEPRINTS)),
+    *(_ordered(item, (index + _ACTIVE_COUNT) * 10) for index, item in enumerate(_BLUEPRINTS)),
 )
 
-#: Mẫu mặc định cho khách chung (link không mã) — giữ nguyên Đại Lễ Hỷ Sự để không ảnh hưởng link cũ.
+#: Mẫu mặc định cho khách chung (link không mã) — giữ Đại Lễ Hỷ Sự cho link cũ.
 DEFAULT_TEMPLATE_KEY: Final[str] = DAILE_TEMPLATE_KEY
 
 #: Mẫu cho nghỉ sau đợt rà bộ mẫu: trùng khuôn với mẫu khác (chỉ đổi màu) mà không có
@@ -361,6 +370,7 @@ def canonical_template_key(key: str) -> str:
 
 
 __all__ = [
+    "ACTIVE_TEMPLATE_BLUEPRINTS",
     "DAILE_TEMPLATE_KEY",
     "DEFAULT_TEMPLATE_KEY",
     "DOC_BAN_2026_KEYS",

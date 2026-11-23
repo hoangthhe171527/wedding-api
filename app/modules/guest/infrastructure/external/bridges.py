@@ -13,6 +13,7 @@ from collections.abc import Sequence
 from typing import Any
 from uuid import UUID
 
+from app.core import cache
 from app.modules.guest.application.use_cases import (
     LeaveWish,
     Reply,
@@ -23,10 +24,14 @@ from app.modules.guest.domain.entities import InviteLink
 from app.modules.guest.domain.enums import RsvpStatus
 from app.modules.guest.domain.services import is_valid_code, is_valid_link_slug
 from app.modules.guest.infrastructure.persistence.repositories import (
+    PUBLIC_WISHES_CACHE,
     BeanieGuestRepository,
     BeanieInviteLinkRepository,
     BeanieWishRepository,
 )
+
+PUBLIC_WISHES_TTL_SECONDS = 60
+_PUBLIC_WISHES_CACHE_LIMIT = 60
 
 
 class GuestCounter:
@@ -176,6 +181,25 @@ class GuestResponder:
         return slug if await self._links.find_by_slug(tenant_id, slug) else ""
 
     async def public_wishes(self, tenant_id: UUID, limit: int) -> list[dict[str, Any]]:
+        if limit <= _PUBLIC_WISHES_CACHE_LIMIT:
+            cached = await cache.get_json(PUBLIC_WISHES_CACHE, str(tenant_id))
+            if isinstance(cached, list):
+                return [item for item in cached[:limit] if isinstance(item, dict)]
+            wishes = await self._wishes.list_recent(
+                tenant_id, limit=_PUBLIC_WISHES_CACHE_LIMIT, with_message=True
+            )
+            rows = [
+                {
+                    "name": item.name,
+                    "message": item.message,
+                    "created_at": item.created_at.isoformat() if item.created_at else None,
+                }
+                for item in wishes
+            ]
+            await cache.set_json(
+                rows, PUBLIC_WISHES_TTL_SECONDS, PUBLIC_WISHES_CACHE, str(tenant_id)
+            )
+            return rows[:limit]
         wishes = await self._wishes.list_recent(tenant_id, limit=limit, with_message=True)
         return [
             {"name": item.name, "message": item.message, "created_at": item.created_at}

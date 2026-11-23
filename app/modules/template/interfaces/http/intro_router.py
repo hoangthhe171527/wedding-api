@@ -171,7 +171,7 @@ async def read_intro(
     if media.redirect:
         # 302 chứ không 301: URL ký của kho đổi theo giờ, không được lưu vĩnh viễn.
         return RedirectResponse(
-            media.redirect, status_code=302, headers={"Cache-Control": "private, max-age=300"}
+            media.redirect, status_code=302, headers={"Cache-Control": "private, max-age=3600"}
         )
     intro = media.intro
     if intro is None:  # `open` trả hoặc chuyển hướng, hoặc video — không bao giờ cả hai rỗng

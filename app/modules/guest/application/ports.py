@@ -21,4 +21,10 @@ class PlanGuestLimit(Protocol):
     async def limit_for(self, tenant_id: UUID) -> dict[str, Any] | None: ...
 
 
-__all__ = ["PlanGuestLimit", "TemplateCatalog"]
+class PlanLinkGate(Protocol):
+    """Kiểm tra mẫu gắn cho link khi thiệp đang xuất bản (module `wedding` + `billing`)."""
+
+    async def ensure_template(self, tenant_id: UUID, template_key: str) -> None: ...
+
+
+__all__ = ["PlanGuestLimit", "PlanLinkGate", "TemplateCatalog"]

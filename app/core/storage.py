@@ -14,7 +14,8 @@ from __future__ import annotations
 
 import asyncio
 import io
-from datetime import timedelta
+import math
+from datetime import UTC, datetime, timedelta
 from functools import lru_cache
 from urllib.parse import urlparse
 
@@ -60,6 +61,11 @@ class ObjectStore:
         # Đọc mỗi lần: test đổi sang bucket riêng sau khi kho đã được dựng.
         return get_settings().S3_BUCKET
 
+    @property
+    def has_public_url(self) -> bool:
+        """Kho có địa chỉ công khai (`S3_PUBLIC_URL`) để trình duyệt tải thẳng hay không."""
+        return self._public is not None
+
     async def healthy(self) -> bool:
         """Kho object có phản hồi và bucket còn đó không — cho `/health`."""
         try:
@@ -83,6 +89,7 @@ class ObjectStore:
             io.BytesIO(data),
             len(data),
             content_type=content_type,
+            metadata={"Cache-Control": "public, max-age=31536000, immutable"},
         )
 
     async def get(self, key: str) -> bytes | None:
@@ -123,11 +130,28 @@ class ObjectStore:
         """Xoá; object không tồn tại cũng coi là xong."""
         await asyncio.to_thread(self._internal.remove_object, self.bucket, key)
 
-    def direct_url(self, key: str, expires: timedelta) -> str | None:
-        """URL đọc trực tiếp từ kho (qua `S3_PUBLIC_URL`); None nếu chưa cấu hình."""
+    def direct_url(
+        self, key: str, expires: timedelta, *, now: datetime | None = None
+    ) -> str | None:
+        """URL đọc trực tiếp từ kho (qua `S3_PUBLIC_URL`); None nếu chưa cấu hình.
+
+        Làm tròn mốc ký về đầu giờ UTC và thời hạn về số giờ chẵn (`[2h, 168h]`)
+        để mọi lượt đọc trong cùng một giờ nhận CÙNG một URL — tận dụng cache trình
+        duyệt và CDN thay vì đổi chữ ký mỗi giây.
+        """
         if self._public is None:
             return None
-        return self._public.presigned_get_object(self.bucket, key, expires=expires)
+        current = (now or datetime.now(UTC)).astimezone(UTC)
+        hour_bucket = current.replace(minute=0, second=0, microsecond=0)
+        hours = max(2, min(168, math.ceil(expires.total_seconds() / 3600)))
+        bucket_expires = timedelta(hours=hours)
+        return self._public.presigned_get_object(
+            self.bucket,
+            key,
+            expires=bucket_expires,
+            request_date=hour_bucket,
+            response_headers={"response-cache-control": "public, max-age=31536000, immutable"},
+        )
 
 
 @lru_cache(maxsize=1)

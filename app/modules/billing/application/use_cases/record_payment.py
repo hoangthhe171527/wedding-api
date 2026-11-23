@@ -13,9 +13,11 @@ Luật chung cho cả hai nguồn:
 from __future__ import annotations
 
 import hmac
+import re
 from dataclasses import dataclass
 from typing import Any
 
+from app.core import audit
 from app.core.config import get_settings
 from app.core.errors import NotFoundError, UnauthorizedError
 from app.core.logging import get_logger
@@ -40,6 +42,11 @@ class BankTransfer:
     content: str
     direction: str
     raw: dict[str, Any]
+    account_number: str = ""
+
+
+def _digits(value: str) -> str:
+    return re.sub(r"\D", "", value)
 
 
 def _classify(order: Order | None, amount: int) -> PaymentEventStatus:
@@ -86,6 +93,19 @@ async def _settle(
             status = PaymentEventStatus.DUPLICATE
         else:
             log.info("order_paid", code=order.code, source=source, amount=amount)
+            await audit.record(
+                "order.paid_auto",
+                actor_id=None,
+                target_type="order",
+                target_id=order.id,
+                tenant_id=order.tenant_id,
+                details={
+                    "code": order.code,
+                    "source": source,
+                    "amount": amount,
+                    "external_id": external_id,
+                },
+            )
     try:
         await events.record(
             source=source,
@@ -119,6 +139,15 @@ class RecordBankTransfer:
         if not expected or not _same(api_key, expected):
             raise UnauthorizedError("Khoá webhook không hợp lệ.", code="webhook_unauthorized")
         if transfer.direction != "in" or transfer.amount <= 0:
+            return PaymentEventStatus.IGNORED
+        expected_account = _digits(get_settings().BANK_ACCOUNT_NO)
+        incoming_account = _digits(transfer.account_number)
+        if expected_account and incoming_account and incoming_account != expected_account:
+            log.warning(
+                "bank_webhook_wrong_account",
+                external_id=transfer.external_id,
+                account_tail=incoming_account[-4:],
+            )
             return PaymentEventStatus.IGNORED
         code = find_order_code(transfer.content)
         order = await self._orders.find_by_code(code) if code else None

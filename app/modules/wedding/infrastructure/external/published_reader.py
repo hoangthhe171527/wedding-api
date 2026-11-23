@@ -21,8 +21,8 @@ from app.modules.wedding.infrastructure.persistence.repositories import (
     BeanieWeddingRepository,
 )
 
-#: Bản công khai cũ tối đa chừng này khi slug đổi (khoá cũ không bị xoá chủ động).
-PUBLISHED_TTL_SECONDS = 30
+#: Bản công khai cũ tối đa chừng này khi slug đổi (các lần lưu đều xoá cache ngay).
+PUBLISHED_TTL_SECONDS = 300
 
 
 class PublishedWeddingReader:

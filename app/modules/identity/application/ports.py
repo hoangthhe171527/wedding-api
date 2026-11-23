@@ -37,4 +37,18 @@ class TenantDataDeleter(Protocol):
     async def execute(self, tenant_id: UUID) -> None: ...
 
 
-__all__ = ["PermissionResolver", "RoleGranter", "TenantDataDeleter", "UserRoleReader"]
+class PasswordResetMailer(Protocol):
+    """Gửi liên kết đặt lại mật khẩu qua email."""
+
+    async def send_reset_link(
+        self, *, to_email: str, full_name: str, reset_url: str, ttl_minutes: int
+    ) -> bool: ...
+
+
+__all__ = [
+    "PasswordResetMailer",
+    "PermissionResolver",
+    "RoleGranter",
+    "TenantDataDeleter",
+    "UserRoleReader",
+]

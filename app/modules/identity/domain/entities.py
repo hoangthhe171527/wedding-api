@@ -70,4 +70,16 @@ class AuthSession:
         return self.expires_at <= now
 
 
-__all__ = ["AuthSession", "Studio", "User"]
+@dataclass(frozen=True, slots=True)
+class PasswordResetToken:
+    """Token đặt lại mật khẩu dùng một lần; DB chỉ giữ bản băm SHA-256."""
+
+    id: UUID
+    tenant_id: UUID
+    user_id: UUID
+    expires_at: datetime
+    used_at: datetime | None = None
+    created_by_admin_id: UUID | None = None
+
+
+__all__ = ["AuthSession", "PasswordResetToken", "Studio", "User"]

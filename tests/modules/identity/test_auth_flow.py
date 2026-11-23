@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
+from uuid import UUID
+
 from httpx import AsyncClient
 
+from app.core.audit import AuditEventDocument
 from app.modules.identity.application.use_cases.login_user import INVALID_CREDENTIALS_MESSAGE
 from tests.conftest import API, Session, login, register
 
@@ -131,6 +134,10 @@ async def test_tai_khoan_tu_xoa_duoc_toan_bo_du_lieu(
         headers=customer.headers,
     )
     assert deleted.status_code == 200, deleted.text
+    events = await AuditEventDocument.find(
+        {"tenant_id": UUID(customer.actor["studio"]["id"])}
+    ).to_list()
+    assert any(event.action == "account.deleted" for event in events)
     assert (await client.get(f"{API}/auth/me", headers=customer.headers)).status_code == 401
     login_again = await client.post(
         f"{API}/auth/login",
@@ -228,9 +235,10 @@ async def test_refresh_token_nam_trong_cookie_httponly(
     assert "SameSite=strict" in cookie
     assert "Path=/api/v1/auth" in cookie
 
-    # Web chỉ gửi cookie, không gửi token trong thân yêu cầu.
+    # Web chỉ gửi cookie, không gửi token trong thân yêu cầu — JSON không trả refresh_token thô.
     refreshed = await client.post(f"{API}/auth/refresh", json={})
     assert refreshed.status_code == 200, refreshed.text
+    assert refreshed.json()["data"]["refresh_token"] == ""
     access = refreshed.json()["data"]["access_token"]
 
     out = await client.post(
@@ -244,3 +252,16 @@ async def test_refresh_token_nam_trong_cookie_httponly(
     client.cookies.clear()
     missing = await client.post(f"{API}/auth/refresh", json={})
     assert missing.status_code == 401
+
+
+async def test_web_cookie_transport_an_refresh_token_trong_json(
+    client: AsyncClient, customer: Session
+) -> None:
+    web_login = await client.post(
+        f"{API}/auth/login",
+        json={"identifier": "coupleA@example.com", "password": "matkhau123"},
+        headers={"X-Auth-Transport": "cookie"},
+    )
+    assert web_login.status_code == 200
+    assert web_login.json()["data"]["refresh_token"] == ""
+    assert "wedding_refresh=" in web_login.headers["set-cookie"]

@@ -27,7 +27,7 @@ from fastapi import APIRouter, Depends, Header, Query, Request, Response, status
 
 from app.core import rate_limit
 from app.core.context import ActorContext
-from app.core.dependencies import require_permissions
+from app.core.dependencies import client_ip, require_permissions
 from app.core.errors import ValidationError
 from app.core.pagination import PageParams, page_params
 from app.core.permissions import Permission
@@ -180,6 +180,7 @@ async def simulate_paid(
 )
 async def bank_webhook(
     payload: BankWebhookIn,
+    request: Request,
     use_case: RecordBankTransferDep,
     authorization: Annotated[str, Header()] = "",
 ) -> dict[str, Any]:
@@ -188,6 +189,14 @@ async def bank_webhook(
     Trả 200 cả khi tiền không khớp đơn nào (đã ghi sổ để đối soát): trả lỗi thì
     dịch vụ sẽ gửi lại mãi cùng một giao dịch.
     """
+    await rate_limit.guard(
+        "bank_webhook_ip",
+        client_ip(request) or "unknown",
+        limit=120,
+        window_seconds=60,
+        message="Quá nhiều yêu cầu webhook.",
+        code="webhook_rate_limited",
+    )
     scheme, _, key = authorization.partition(" ")
     result = await use_case.execute(
         key.strip() if scheme.lower() == "apikey" else "",
@@ -197,6 +206,7 @@ async def bank_webhook(
             content=payload.content,
             direction=payload.transfer_type.lower(),
             raw=payload.model_dump(by_alias=True),
+            account_number=payload.account_number,
         ),
     )
     return {"success": True, "status": result.value}

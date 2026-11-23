@@ -19,8 +19,16 @@ from app.core.pagination import PageParams, page_params
 from app.core.permissions import Permission
 from app.core.responses import PaginatedEnvelope, ResponseEnvelope, ok, ok_page
 from app.modules.identity.application.dtos import UserSummary
-from app.modules.identity.infrastructure.providers import ListUsersDep, SetUserActiveDep
-from app.modules.identity.interfaces.http.schemas import AdminUserOut, SetActiveIn
+from app.modules.identity.infrastructure.providers import (
+    CreateAdminResetLinkDep,
+    ListUsersDep,
+    SetUserActiveDep,
+)
+from app.modules.identity.interfaces.http.schemas import (
+    AdminResetLinkOut,
+    AdminUserOut,
+    SetActiveIn,
+)
 
 router = APIRouter(prefix="/admin/users", tags=["Quản trị tài khoản"])
 
@@ -51,6 +59,19 @@ async def set_status(
     """Khoá tài khoản cắt mọi phiên đang đăng nhập của người đó ngay lập tức."""
     user = await use_case.execute(actor, user_id, is_active=payload.is_active)
     return ok(AdminUserOut.of(UserSummary(user=user, studio_name=None)))
+
+
+@router.post(
+    "/{user_id}/reset-link",
+    response_model=ResponseEnvelope[AdminResetLinkOut],
+    summary="Tạo liên kết đặt lại mật khẩu hỗ trợ khách",
+)
+async def create_reset_link(
+    user_id: UUID, actor: UserManager, use_case: CreateAdminResetLinkDep
+) -> dict[str, Any]:
+    """Tạo liên kết đặt lại mật khẩu một lần để gửi cho khách (hữu ích khi khách dùng SĐT)."""
+    result = await use_case.execute(actor, user_id)
+    return ok(AdminResetLinkOut(reset_url=result.reset_url, expires_at=result.expires_at))
 
 
 __all__ = ["router"]

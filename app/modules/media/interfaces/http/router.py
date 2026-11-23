@@ -184,7 +184,7 @@ async def read_photo(
     if photo.redirect:
         # 302 chứ không 301: URL ký của kho đổi theo giờ, không được lưu vĩnh viễn.
         return RedirectResponse(
-            photo.redirect, status_code=302, headers={"Cache-Control": "private, max-age=300"}
+            photo.redirect, status_code=302, headers={"Cache-Control": "private, max-age=3600"}
         )
     return Response(
         content=photo.data,
