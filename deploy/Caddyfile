@@ -15,6 +15,14 @@
 	import security
 	encode zstd gzip
 
+	handle /api/v1/intros* {
+		# Video mở thiệp tối đa 60 MB (`INTRO_MAX_BYTES = 60_000_000`).
+		request_body {
+			max_size 64MB
+		}
+		reverse_proxy api:8000
+	}
+
 	handle /api/* {
 		# Ảnh tải lên tối đa ~10 MB; chặn thân lớn hơn trước khi tới API.
 		request_body {
@@ -37,6 +45,10 @@
 # Kho ảnh (S3 / SeaweedFS) — URL ảnh đã ký. Giữ nguyên Host: chữ ký S3 gắn với host.
 {$MEDIA_DOMAIN} {
 	import security
-	header Access-Control-Allow-Origin "https://{$DOMAIN}"
+	header {
+		Access-Control-Allow-Origin "https://{$DOMAIN}"
+		Vary "Origin"
+		?Cache-Control "public, max-age=31536000, immutable"
+	}
 	reverse_proxy s3:8333
 }

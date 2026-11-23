@@ -36,15 +36,19 @@ from app.modules.identity.infrastructure.providers import (
     LogoutUserDep,
     RefreshTokenDep,
     RegisterCustomerDep,
+    RequestPasswordResetDep,
+    ResetPasswordDep,
 )
 from app.modules.identity.interfaces.http.schemas import (
     ActorOut,
     ChangePasswordIn,
     DeleteAccountIn,
+    ForgotPasswordIn,
     LoginIn,
     LogoutIn,
     RefreshIn,
     RegisterIn,
+    ResetPasswordIn,
     TokenOut,
 )
 
@@ -54,6 +58,7 @@ LOGIN_IP_BUCKET = "login_ip"
 LOGIN_IDENTIFIER_BUCKET = "login_identifier"
 REGISTER_IP_BUCKET = "register_ip"
 _REGISTER_WINDOW_SECONDS = 3600
+_RESET_WINDOW_SECONDS = 900
 
 
 async def _guard_login_rate(*, ip: str, identifier: str) -> None:
@@ -107,6 +112,12 @@ def _clear_refresh_cookie(response: Response) -> None:
     response.delete_cookie(REFRESH_COOKIE, path=f"{cfg.API_PREFIX}/auth")
 
 
+def _omit_refresh_in_body(request: Request, *, from_cookie: bool = False) -> bool:
+    """Web nhận refresh token qua cookie HttpOnly — không lộ token thô ra JSON body."""
+    transport = request.headers.get("x-auth-transport", "").strip().lower()
+    return from_cookie or transport == "cookie"
+
+
 def _rate_key(raw: str) -> str:
     """Khoá bộ đếm theo định danh ĐÃ chuẩn hoá: `0912 345 678`, `+84912345678`,
     `(0912)345.678`... là một số — đếm chung, không mỗi cách viết một hạn mức.
@@ -140,7 +151,7 @@ async def login(
     window = get_settings().LOGIN_RATE_LIMIT_WINDOW_SECONDS
     await rate_limit.reset(LOGIN_IDENTIFIER_BUCKET, identifier, window_seconds=window)
     _set_refresh_cookie(response, result.refresh_token)
-    return ok(TokenOut.of(result))
+    return ok(TokenOut.of(result, include_refresh=not _omit_refresh_in_body(request)))
 
 
 @router.post(
@@ -173,7 +184,7 @@ async def register(
         )
     )
     _set_refresh_cookie(response, result.refresh_token)
-    return ok(TokenOut.of(result))
+    return ok(TokenOut.of(result, include_refresh=not _omit_refresh_in_body(request)))
 
 
 @router.post(
@@ -186,6 +197,7 @@ async def refresh(
 
     Token lấy từ thân yêu cầu (ứng dụng khác) hoặc cookie HttpOnly (web).
     """
+    from_cookie = not payload.refresh_token
     token = payload.refresh_token or request.cookies.get(REFRESH_COOKIE, "")
     if not token:
         raise UnauthorizedError("Phiên đăng nhập đã hết hạn.", code="missing_refresh_token")
@@ -197,7 +209,12 @@ async def refresh(
         )
     )
     _set_refresh_cookie(response, result.refresh_token)
-    return ok(TokenOut.of(result))
+    return ok(
+        TokenOut.of(
+            result,
+            include_refresh=not _omit_refresh_in_body(request, from_cookie=from_cookie),
+        )
+    )
 
 
 @router.post("/logout", response_model=ResponseEnvelope[MessageOut], summary="Đăng xuất")
@@ -232,6 +249,67 @@ async def change_password(
     """Đổi mật khẩu; mọi phiên trên thiết bị khác bị thu hồi."""
     await use_case.execute(actor, payload.current_password, payload.new_password)
     return ok_message("Đã đổi mật khẩu. Các thiết bị khác cần đăng nhập lại.")
+
+
+@router.post(
+    "/forgot-password",
+    response_model=ResponseEnvelope[MessageOut],
+    summary="Yêu cầu đặt lại mật khẩu",
+)
+async def forgot_password(
+    payload: ForgotPasswordIn, request: Request, use_case: RequestPasswordResetDep
+) -> dict[str, Any]:
+    """Luôn trả cùng một thông điệp dù email có tồn tại hay không."""
+    ip = client_ip(request) or "unknown"
+    identifier = _rate_key(payload.identifier)
+    message = "Bạn đã yêu cầu quá nhiều lần. Vui lòng đợi ít phút rồi thử lại."
+    await rate_limit.guard(
+        "forgot_password_ip",
+        ip,
+        limit=5,
+        window_seconds=_RESET_WINDOW_SECONDS,
+        message=message,
+        code="forgot_password_rate_limited",
+    )
+    await rate_limit.guard(
+        "forgot_password_identifier",
+        identifier,
+        limit=3,
+        window_seconds=_RESET_WINDOW_SECONDS,
+        message=message,
+        code="forgot_password_rate_limited",
+    )
+    await use_case.execute(payload.identifier)
+    return ok_message(
+        "Nếu tài khoản có email đăng ký, chúng tôi đã gửi hướng dẫn đặt lại mật khẩu. "
+        "Nếu bạn chỉ đăng ký bằng số điện thoại, vui lòng nhắn Zalo đội hỗ trợ."
+    )
+
+
+@router.post(
+    "/reset-password",
+    response_model=ResponseEnvelope[MessageOut],
+    summary="Đặt lại mật khẩu mới bằng token",
+)
+async def reset_password(
+    payload: ResetPasswordIn,
+    request: Request,
+    response: Response,
+    use_case: ResetPasswordDep,
+) -> dict[str, Any]:
+    """Đặt mật khẩu mới từ liên kết một lần; cắt toàn bộ phiên đăng nhập cũ."""
+    ip = client_ip(request) or "unknown"
+    await rate_limit.guard(
+        "reset_password_ip",
+        ip,
+        limit=10,
+        window_seconds=_RESET_WINDOW_SECONDS,
+        message="Bạn thử đặt lại mật khẩu quá nhiều lần. Vui lòng đợi ít phút rồi thử lại.",
+        code="reset_password_rate_limited",
+    )
+    await use_case.execute(payload.token, payload.new_password)
+    _clear_refresh_cookie(response)
+    return ok_message("Đã đặt lại mật khẩu thành công. Bạn có thể đăng nhập bằng mật khẩu mới.")
 
 
 @router.delete(

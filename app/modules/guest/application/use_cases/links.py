@@ -12,7 +12,7 @@ from uuid import UUID
 from app.core.context import ActorContext
 from app.core.errors import ConflictError, NotFoundError, ValidationError
 from app.core.logging import get_logger
-from app.modules.guest.application.ports import TemplateCatalog
+from app.modules.guest.application.ports import PlanLinkGate, TemplateCatalog
 from app.modules.guest.domain.entities import InviteLink
 from app.modules.guest.domain.enums import MAX_LINKS_PER_STUDIO
 from app.modules.guest.domain.repositories import (
@@ -104,15 +104,23 @@ class ListLinks:
 
 
 class CreateLink:
-    def __init__(self, links: InviteLinkRepository, templates: TemplateCatalog) -> None:
+    def __init__(
+        self,
+        links: InviteLinkRepository,
+        templates: TemplateCatalog,
+        link_gate: PlanLinkGate | None = None,
+    ) -> None:
         self._links = links
         self._templates = templates
+        self._link_gate = link_gate
 
     async def execute(self, actor: ActorContext, data: LinkInput) -> InviteLink:
-        """Raises: ValidationError, ConflictError (trùng đuôi, quá số link)."""
+        """Raises: ValidationError, ConflictError (trùng đuôi, quá số link, vượt gói)."""
         chosen = data.slug.strip().lower()
         base = chosen or link_slug_from(data.name)
         _ensure_valid(data, base, await self._templates.known_keys())
+        if self._link_gate is not None and data.template:
+            await self._link_gate.ensure_template(actor.tenant_id, data.template)
         if await self._links.count(actor.tenant_id) >= MAX_LINKS_PER_STUDIO:
             raise ConflictError(
                 f"Mỗi thiệp tối đa {MAX_LINKS_PER_STUDIO} link theo đối tượng.",
@@ -137,12 +145,18 @@ class CreateLink:
 
 
 class UpdateLink:
-    def __init__(self, links: InviteLinkRepository, templates: TemplateCatalog) -> None:
+    def __init__(
+        self,
+        links: InviteLinkRepository,
+        templates: TemplateCatalog,
+        link_gate: PlanLinkGate | None = None,
+    ) -> None:
         self._links = links
         self._templates = templates
+        self._link_gate = link_gate
 
     async def execute(self, actor: ActorContext, link_id: UUID, data: LinkInput) -> InviteLink:
-        """Raises: NotFoundError, ValidationError, ConflictError (trùng đuôi).
+        """Raises: NotFoundError, ValidationError, ConflictError (trùng đuôi, vượt gói).
 
         Đổi đuôi là link cũ đã gửi thôi nhận diện — giao diện phải cảnh báo trước.
         """
@@ -151,6 +165,8 @@ class UpdateLink:
             raise link_not_found()
         slug = data.slug.strip().lower() or current.slug
         _ensure_valid(data, slug, await self._templates.known_keys())
+        if self._link_gate is not None and data.template:
+            await self._link_gate.ensure_template(actor.tenant_id, data.template)
         try:
             saved = await self._links.update(
                 actor.tenant_id,

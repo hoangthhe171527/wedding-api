@@ -13,6 +13,7 @@ from datetime import timedelta
 from typing import Any
 from uuid import UUID
 
+from app.core import cache
 from app.core.base_model import utc_now
 from app.core.logging import get_logger
 from app.core.storage import ObjectStore, get_object_store
@@ -20,6 +21,17 @@ from app.modules.media.domain.entities import ADJUST_FIELDS, Photo, PhotoAdjust,
 from app.modules.media.infrastructure.persistence.models import PhotoBlobDocument, PhotoDocument
 
 log = get_logger(__name__)
+
+PHOTO_META_CACHE = "photo_meta"
+PUBLIC_ALBUM_CACHE = "public_album"
+_PHOTO_META_TTL = 3600
+
+
+async def invalidate_photo_cache(tenant_id: UUID, photo_id: UUID | None = None) -> None:
+    """Xoá cache album công khai (theo xưởng) và metadata ảnh (nếu truyền `photo_id`)."""
+    await cache.delete(PUBLIC_ALBUM_CACHE, str(tenant_id))
+    if photo_id is not None:
+        await cache.delete(PHOTO_META_CACHE, str(photo_id))
 
 
 def photo_key(tenant_id: UUID, photo_id: UUID) -> str:
@@ -50,6 +62,8 @@ def _photo(doc: PhotoDocument) -> Photo:
         focus_y=doc.focus_y,
         adjust=PhotoAdjust(**{name: getattr(doc, name) for name in ADJUST_FIELDS}),
         created_at=doc.created_at,
+        storage_key=doc.storage_key,
+        small_key=doc.small_key,
     )
 
 
@@ -105,6 +119,7 @@ class BeaniePhotoRepository:
             if meta.small_key:
                 await self._store.delete(meta.small_key)
             raise
+        await invalidate_photo_cache(tenant_id)
         return _photo(meta)
 
     async def find_by_hash(
@@ -152,6 +167,7 @@ class BeaniePhotoRepository:
         await PhotoDocument.get_motor_collection().update_one(
             {"_id": photo_id}, {"$set": {"small_key": small_key}}
         )
+        await invalidate_photo_cache(doc.tenant_id, photo_id)
         return True
 
     async def set_order(self, tenant_id: UUID, photo_id: UUID, order: int) -> bool:
@@ -159,7 +175,10 @@ class BeaniePhotoRepository:
             {"_id": photo_id, "tenant_id": tenant_id, "deleted_at": None},
             {"$set": {"order": order, "updated_at": utc_now()}},
         )
-        return bool(result.matched_count)
+        updated = bool(result.matched_count)
+        if updated:
+            await invalidate_photo_cache(tenant_id)
+        return updated
 
     async def set_focus(
         self, tenant_id: UUID, photo_id: UUID, focus_x: float, focus_y: float
@@ -174,14 +193,20 @@ class BeaniePhotoRepository:
                 }
             },
         )
-        return bool(result.matched_count)
+        updated = bool(result.matched_count)
+        if updated:
+            await invalidate_photo_cache(tenant_id)
+        return updated
 
     async def set_adjust(self, tenant_id: UUID, photo_id: UUID, fields: Mapping[str, Any]) -> bool:
         result = await PhotoDocument.get_motor_collection().update_one(
             {"_id": photo_id, "tenant_id": tenant_id, "deleted_at": None},
             {"$set": {**fields, "updated_at": utc_now()}},
         )
-        return bool(result.matched_count)
+        updated = bool(result.matched_count)
+        if updated:
+            await invalidate_photo_cache(tenant_id)
+        return updated
 
     async def delete(self, tenant_id: UUID, photo_id: UUID) -> bool:
         doc = await PhotoDocument.find_one({"_id": photo_id, "tenant_id": tenant_id})
@@ -190,6 +215,7 @@ class BeaniePhotoRepository:
         await PhotoDocument.get_motor_collection().delete_one(
             {"_id": photo_id, "tenant_id": tenant_id}
         )
+        await invalidate_photo_cache(tenant_id, photo_id)
         # Siêu dữ liệu đã xoá thì ảnh không còn hiện ở đâu; object còn sót (kho
         # lỗi tạm thời) chỉ tốn chỗ, không lộ gì — ghi log để dọn sau.
         try:
@@ -205,25 +231,60 @@ class BeaniePhotoRepository:
             log.warning("photo_object_orphaned", photo_id=str(photo_id), key=doc.storage_key)
         return True
 
-    async def read_content(
-        self, photo_id: UUID, *, small: bool = False
-    ) -> tuple[bytes, str] | None:
+    async def _load_meta(self, photo_id: UUID) -> tuple[str, str, str] | None:
+        cached = await cache.get_json(PHOTO_META_CACHE, str(photo_id))
+        if isinstance(cached, dict) and cached.get("storage_key"):
+            return (
+                str(cached["storage_key"]),
+                str(cached.get("small_key") or ""),
+                str(cached.get("content_type") or ""),
+            )
         doc = await PhotoDocument.find_one({"_id": photo_id, "deleted_at": None})
         if doc is None:
             return None
         if doc.storage_key:
-            data = await self._store.get(_key(doc, small=small))
-            return (data, doc.content_type) if data is not None else None
+            await cache.set_json(
+                {
+                    "storage_key": doc.storage_key,
+                    "small_key": doc.small_key,
+                    "content_type": doc.content_type,
+                },
+                _PHOTO_META_TTL,
+                PHOTO_META_CACHE,
+                str(photo_id),
+            )
+        return doc.storage_key, doc.small_key, doc.content_type
+
+    async def read_content(
+        self, photo_id: UUID, *, small: bool = False
+    ) -> tuple[bytes, str] | None:
+        meta = await self._load_meta(photo_id)
+        if meta is None:
+            return None
+        storage_key, small_key, content_type = meta
+        if storage_key:
+            key = small_key if small and small_key else storage_key
+            data = await self._store.get(key)
+            return (data, content_type) if data is not None else None
         blob = await PhotoBlobDocument.find_one({"photo_id": photo_id, "deleted_at": None})
         return (blob.data, blob.content_type) if blob else None
 
     async def direct_url(
         self, photo_id: UUID, expires: timedelta, *, small: bool = False
     ) -> str | None:
-        doc = await PhotoDocument.find_one({"_id": photo_id, "deleted_at": None})
-        if doc is None or not doc.storage_key:
+        meta = await self._load_meta(photo_id)
+        if meta is None or not meta[0]:
             return None
-        return self._store.direct_url(_key(doc, small=small), expires)
+        storage_key, small_key, _ = meta
+        key = small_key if small and small_key else storage_key
+        return self._store.direct_url(key, expires)
 
 
-__all__ = ["SMALL_SUFFIX", "BeaniePhotoRepository", "photo_key"]
+__all__ = [
+    "PHOTO_META_CACHE",
+    "PUBLIC_ALBUM_CACHE",
+    "SMALL_SUFFIX",
+    "BeaniePhotoRepository",
+    "invalidate_photo_cache",
+    "photo_key",
+]

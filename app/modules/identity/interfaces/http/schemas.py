@@ -66,6 +66,26 @@ class DeleteAccountIn(BaseModel):
     password: str = Field(min_length=1, max_length=256)
 
 
+class ForgotPasswordIn(BaseModel):
+    """Yêu cầu đặt lại mật khẩu (nhận email hoặc số điện thoại)."""
+
+    identifier: str = Field(min_length=3, max_length=190)
+
+
+class ResetPasswordIn(BaseModel):
+    """Đặt lại mật khẩu mới bằng token một lần."""
+
+    token: str = Field(min_length=16, max_length=256)
+    new_password: str = Field(min_length=8, max_length=256)
+
+
+class AdminResetLinkOut(BaseModel):
+    """Liên kết đặt lại mật khẩu do đội vận hành tạo cho khách."""
+
+    reset_url: str
+    expires_at: datetime
+
+
 class StudioOut(BaseModel):
     """Xưởng thiệp của actor."""
 
@@ -106,17 +126,17 @@ class TokenOut(BaseModel):
     """Cặp token vừa phát hành kèm hồ sơ actor."""
 
     access_token: str
-    refresh_token: str
+    refresh_token: str = ""
     token_type: str = TOKEN_TYPE
     expires_in: int
     expires_at: datetime
     actor: ActorOut
 
     @classmethod
-    def of(cls, result: AuthResult) -> TokenOut:
+    def of(cls, result: AuthResult, *, include_refresh: bool = True) -> TokenOut:
         return cls(
             access_token=result.access_token,
-            refresh_token=result.refresh_token,
+            refresh_token=result.refresh_token if include_refresh else "",
             expires_in=result.expires_in,
             expires_at=result.expires_at,
             actor=ActorOut.of(result.profile),
@@ -162,13 +182,16 @@ class SetActiveIn(BaseModel):
 
 __all__ = [
     "ActorOut",
+    "AdminResetLinkOut",
     "AdminUserOut",
     "ChangePasswordIn",
     "DeleteAccountIn",
+    "ForgotPasswordIn",
     "LoginIn",
     "LogoutIn",
     "RefreshIn",
     "RegisterIn",
+    "ResetPasswordIn",
     "SetActiveIn",
     "TokenOut",
 ]

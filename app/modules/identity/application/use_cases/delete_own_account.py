@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 
-from app.core.audit import AuditEventDocument
+from app.core import audit
 from app.core.base_model import utc_now
 from app.core.context import ActorContext
 from app.core.errors import UnauthorizedError, ValidationError
@@ -18,6 +18,7 @@ from app.core.security.revocation import revoke_user
 from app.modules.identity.application.ports import TenantDataDeleter
 from app.modules.identity.domain.repositories import (
     AuthSessionRepository,
+    PasswordResetTokenRepository,
     StudioRepository,
     UserRepository,
 )
@@ -34,11 +35,13 @@ class DeleteOwnAccount:
         studios: StudioRepository,
         sessions: AuthSessionRepository,
         tenant_data: Sequence[TenantDataDeleter],
+        reset_tokens: PasswordResetTokenRepository | None = None,
     ) -> None:
         self._users = users
         self._studios = studios
         self._sessions = sessions
         self._tenant_data = tuple(tenant_data)
+        self._reset_tokens = reset_tokens
 
     async def execute(self, actor: ActorContext, password: str) -> None:
         user = await self._users.find_by_id(actor.tenant_id, actor.user_id)
@@ -58,11 +61,18 @@ class DeleteOwnAccount:
         # còn một actor hợp lệ nếu kho object hoặc Mongo tạm thời lỗi.
         for deleter in self._tenant_data:
             await deleter.execute(actor.tenant_id)
+        if self._reset_tokens is not None:
+            await self._reset_tokens.delete_for_tenant(actor.tenant_id)
         await self._sessions.delete_for_tenant(actor.tenant_id)
         await self._users.delete_for_tenant(actor.tenant_id)
         await self._studios.delete(actor.tenant_id)
-        await AuditEventDocument.get_motor_collection().delete_many(
-            {"$or": [{"tenant_id": actor.tenant_id}, {"actor_id": actor.user_id}]}
+        await audit.record(
+            "account.deleted",
+            actor_id=actor.user_id,
+            target_type="studio",
+            target_id=actor.tenant_id,
+            tenant_id=actor.tenant_id,
+            details={},
         )
         await revoke_user(actor.user_id, at=utc_now())
         log.info(

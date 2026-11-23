@@ -9,6 +9,7 @@ from uuid import UUID
 from pymongo import ReturnDocument
 from pymongo.errors import BulkWriteError, DuplicateKeyError
 
+from app.core import cache
 from app.core.base_model import utc_now
 from app.core.pages import Page, PageParams
 from app.modules.guest.domain.entities import (
@@ -30,6 +31,8 @@ from app.modules.guest.infrastructure.persistence.models import (
     InviteLinkDocument,
     WishDocument,
 )
+
+PUBLIC_WISHES_CACHE = "public_wishes"
 
 #: Mã lỗi khoá trùng của MongoDB (index duy nhất `(tenant, code)`).
 _DUPLICATE_KEY = 11000
@@ -291,6 +294,7 @@ class BeanieWishRepository:
             link=link,
         )
         await doc.insert()
+        await cache.delete(PUBLIC_WISHES_CACHE, str(tenant_id))
         return _wish(doc)
 
     async def list_recent(self, tenant_id: UUID, *, limit: int, with_message: bool) -> list[Wish]:
@@ -309,6 +313,8 @@ class BeanieWishRepository:
             {"_id": wish_id, "tenant_id": tenant_id, "deleted_at": None},
             {"$set": {"deleted_at": now, "deleted_by": actor_id, "updated_at": now}},
         )
+        if result.modified_count:
+            await cache.delete(PUBLIC_WISHES_CACHE, str(tenant_id))
         return bool(result.modified_count)
 
 
@@ -429,4 +435,9 @@ class BeanieInviteLinkRepository:
         return bool(result.modified_count)
 
 
-__all__ = ["BeanieGuestRepository", "BeanieInviteLinkRepository", "BeanieWishRepository"]
+__all__ = [
+    "PUBLIC_WISHES_CACHE",
+    "BeanieGuestRepository",
+    "BeanieInviteLinkRepository",
+    "BeanieWishRepository",
+]

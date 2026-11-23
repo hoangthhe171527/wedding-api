@@ -7,6 +7,7 @@ kèm luôn danh sách khách mẫu (qua cổng `GuestSeeder` của module `guest
 
 from __future__ import annotations
 
+import secrets
 from dataclasses import replace
 from enum import StrEnum
 
@@ -25,8 +26,15 @@ from app.modules.wedding.domain.services import couple_slug
 
 log = get_logger(__name__)
 
-#: Số lần thử thêm hậu tố khi slug gợi ý đã có chủ.
-_SLUG_ATTEMPTS = 50
+#: Thử slug gốc, trùng thì sinh hậu tố ngẫu nhiên 6 ký tự hex để không kẹt trần 50 user.
+_SLUG_ATTEMPTS = 11
+_SLUG_MAX_LEN = 60
+
+
+def _random_slug(base: str) -> str:
+    suffix = secrets.token_hex(3)
+    prefix = base[: _SLUG_MAX_LEN - len(suffix) - 1].rstrip("-") or "thiep"
+    return f"{prefix}-{suffix}"
 
 
 class SetupMode(StrEnum):
@@ -60,9 +68,7 @@ class SetupWedding:
         base = couple_slug(content.groom.short, content.bride.short)
         wedding: Wedding | None = None
         for attempt in range(_SLUG_ATTEMPTS):
-            slug = base if attempt == 0 else f"{base}-{attempt + 1}"
-            if await self._weddings.slug_exists(slug):
-                continue
+            slug = base if attempt == 0 else _random_slug(base)
             try:
                 wedding = await self._weddings.create(
                     tenant_id=actor.tenant_id, content=content, slug=slug, actor_id=actor.user_id

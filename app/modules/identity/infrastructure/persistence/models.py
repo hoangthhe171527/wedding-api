@@ -120,7 +120,48 @@ class AuthSessionDocument(TenantScopedDocument):
         ]
 
 
-#: Bắt buộc — thiếu biến này thì Beanie không ánh xạ collection (xem models_registry).
-DOCUMENTS: list[type[Document]] = [StudioDocument, UserDocument, AuthSessionDocument]
+class PasswordResetTokenDocument(TenantScopedDocument):
+    """Token đặt lại mật khẩu — DB chỉ lưu bản băm SHA-256, tự xoá sau khi hết hạn 24h."""
 
-__all__ = ["DOCUMENTS", "AuthSessionDocument", "StudioDocument", "UserDocument"]
+    user_id: UUID
+    token_hash: str
+    expires_at: datetime
+    used_at: datetime | None = None
+    created_by_admin_id: UUID | None = None
+
+    class Settings(TenantScopedDocument.Settings):
+        name = "password_reset_tokens"
+        indexes: ClassVar[list[IndexModel]] = [
+            *TenantScopedDocument.Settings.indexes,
+            IndexModel(
+                [("token_hash", ASCENDING)],
+                name="uq_password_reset_hash",
+                unique=True,
+            ),
+            IndexModel(
+                [("user_id", ASCENDING), ("created_at", DESCENDING)],
+                name="ix_password_reset_user",
+            ),
+            IndexModel(
+                [("expires_at", ASCENDING)],
+                name="ttl_password_reset_expired",
+                expireAfterSeconds=86_400,
+            ),
+        ]
+
+
+#: Bắt buộc — thiếu biến này thì Beanie không ánh xạ collection (xem models_registry).
+DOCUMENTS: list[type[Document]] = [
+    StudioDocument,
+    UserDocument,
+    AuthSessionDocument,
+    PasswordResetTokenDocument,
+]
+
+__all__ = [
+    "DOCUMENTS",
+    "AuthSessionDocument",
+    "PasswordResetTokenDocument",
+    "StudioDocument",
+    "UserDocument",
+]

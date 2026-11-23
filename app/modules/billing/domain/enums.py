@@ -112,7 +112,7 @@ PLAN_SPECS: Final[dict[Plan, PlanSpec]] = {
         gift=False,
         design=False,
         highlights=(
-            "5 mẫu cổ điển",
+            "Các mẫu thiệp miễn phí",
             "Tối đa 50 khách",
             "Link chung cho mọi khách",
             "Xác nhận tham dự trên thiệp",

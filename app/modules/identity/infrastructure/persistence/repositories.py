@@ -14,10 +14,16 @@ from pymongo.errors import DuplicateKeyError
 
 from app.core.base_model import new_id, utc_now
 from app.core.pages import Page, PageParams
-from app.modules.identity.domain.entities import AuthSession, Studio, User
+from app.modules.identity.domain.entities import (
+    AuthSession,
+    PasswordResetToken,
+    Studio,
+    User,
+)
 from app.modules.identity.domain.errors import DuplicateIdentifierError
 from app.modules.identity.infrastructure.persistence.models import (
     AuthSessionDocument,
+    PasswordResetTokenDocument,
     StudioDocument,
     UserDocument,
 )
@@ -252,4 +258,71 @@ class BeanieAuthSessionRepository:
         return int(result.deleted_count)
 
 
-__all__ = ["BeanieAuthSessionRepository", "BeanieStudioRepository", "BeanieUserRepository"]
+def _reset_token(doc: PasswordResetTokenDocument) -> PasswordResetToken:
+    return PasswordResetToken(
+        id=doc.id,
+        tenant_id=doc.tenant_id,
+        user_id=doc.user_id,
+        expires_at=doc.expires_at,
+        used_at=doc.used_at,
+        created_by_admin_id=doc.created_by_admin_id,
+    )
+
+
+class BeaniePasswordResetTokenRepository:
+    """`PasswordResetTokenRepository` trên Mongo."""
+
+    async def create(
+        self,
+        *,
+        tenant_id: UUID,
+        user_id: UUID,
+        token_hash: str,
+        expires_at: datetime,
+        created_by_admin_id: UUID | None = None,
+    ) -> PasswordResetToken:
+        doc = PasswordResetTokenDocument(
+            tenant_id=tenant_id,
+            user_id=user_id,
+            token_hash=token_hash,
+            expires_at=expires_at,
+            created_by_admin_id=created_by_admin_id,
+        )
+        await doc.insert()
+        return _reset_token(doc)
+
+    async def invalidate_for_user(self, user_id: UUID, now: datetime) -> int:
+        result = await PasswordResetTokenDocument.get_motor_collection().update_many(
+            {"user_id": user_id, "used_at": None, "deleted_at": None},
+            {"$set": {"used_at": now, "updated_at": now}},
+        )
+        return int(result.modified_count)
+
+    async def consume(self, token_hash: str, now: datetime) -> PasswordResetToken | None:
+        raw = await PasswordResetTokenDocument.get_motor_collection().find_one_and_update(
+            {
+                "token_hash": token_hash,
+                "used_at": None,
+                "expires_at": {"$gt": now},
+                "deleted_at": None,
+            },
+            {"$set": {"used_at": now, "updated_at": now}},
+            return_document=ReturnDocument.AFTER,
+        )
+        if raw is None:
+            return None
+        return _reset_token(PasswordResetTokenDocument.model_validate(raw))
+
+    async def delete_for_tenant(self, tenant_id: UUID) -> int:
+        result = await PasswordResetTokenDocument.get_motor_collection().delete_many(
+            {"tenant_id": tenant_id}
+        )
+        return int(result.deleted_count)
+
+
+__all__ = [
+    "BeanieAuthSessionRepository",
+    "BeaniePasswordResetTokenRepository",
+    "BeanieStudioRepository",
+    "BeanieUserRepository",
+]

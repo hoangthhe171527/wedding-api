@@ -6,12 +6,20 @@ from app.modules.identity.application.use_cases.get_current_actor import GetCurr
 from app.modules.identity.application.use_cases.list_users import ListUsers
 from app.modules.identity.application.use_cases.login_user import LoginUser
 from app.modules.identity.application.use_cases.logout_user import LogoutUser
+from app.modules.identity.application.use_cases.password_reset import (
+    AdminResetLink,
+    CreateAdminResetLink,
+    RequestPasswordReset,
+    ResetPassword,
+)
 from app.modules.identity.application.use_cases.refresh_token import RefreshToken
 from app.modules.identity.application.use_cases.register_customer import RegisterCustomer
 from app.modules.identity.application.use_cases.set_user_active import SetUserActive
 
 __all__ = [
+    "AdminResetLink",
     "ChangeOwnPassword",
+    "CreateAdminResetLink",
     "DeleteOwnAccount",
     "GetCurrentActor",
     "ListUsers",
@@ -19,5 +27,7 @@ __all__ = [
     "LogoutUser",
     "RefreshToken",
     "RegisterCustomer",
+    "RequestPasswordReset",
+    "ResetPassword",
     "SetUserActive",
 ]

@@ -168,6 +168,7 @@ class BillingOut(BaseModel):
     orders: list[OrderOut]
     methods: list[PaymentMethod]
     sandbox: bool
+    prices: dict[str, int] = Field(default_factory=dict)
 
     @classmethod
     def of(cls, summary: BillingSummary) -> BillingOut:
@@ -176,6 +177,11 @@ class BillingOut(BaseModel):
             methods.append(PaymentMethod.BANK_TRANSFER)
         if summary.momo:
             methods.append(PaymentMethod.MOMO)
+        prices = (
+            {spec.plan.value: spec.price for spec in PLAN_SPECS.values() if spec.price > 0}
+            if summary.online_payment
+            else {}
+        )
         return cls(
             plan=PlanOut.of(PLAN_SPECS[summary.plan]),
             plans=all_plans(),
@@ -184,6 +190,7 @@ class BillingOut(BaseModel):
             orders=[OrderOut.of(item) for item in summary.orders],
             methods=methods,
             sandbox=summary.sandbox,
+            prices=prices,
         )
 
 

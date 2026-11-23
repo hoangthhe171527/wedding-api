@@ -6,12 +6,15 @@ from datetime import timedelta
 from typing import Any
 from uuid import UUID
 
+from app.core import cache
 from app.core.base_model import new_id, utc_now
 from app.core.logging import get_logger
 from app.core.storage import ObjectStore, get_object_store
 from app.modules.template.domain.entities import Intro
 from app.modules.template.domain.intros import EXTENSIONS
 from app.modules.template.infrastructure.persistence.models import IntroDocument
+
+INTRO_META_CACHE = "intro_meta"
 
 log = get_logger(__name__)
 
@@ -73,6 +76,7 @@ class BeanieIntroRepository:
         except Exception:
             await self._store.delete(doc.key)
             raise
+        await cache.delete(INTRO_META_CACHE, str(intro_id))
         return _intro(doc)
 
     async def update(
@@ -93,6 +97,7 @@ class BeanieIntroRepository:
             await IntroDocument.get_motor_collection().update_one(
                 {"_id": intro_id}, {"$set": changes}
             )
+            await cache.delete(INTRO_META_CACHE, str(intro_id))
         return await self.get(intro_id)
 
     async def delete(self, intro_id: UUID) -> bool:
@@ -100,6 +105,7 @@ class BeanieIntroRepository:
         if doc is None:
             return False
         await IntroDocument.get_motor_collection().delete_one({"_id": intro_id})
+        await cache.delete(INTRO_META_CACHE, str(intro_id))
         # Siêu dữ liệu đã xoá thì video không còn phát ở đâu; object còn sót (kho
         # lỗi tạm thời) chỉ tốn chỗ — ghi log để dọn sau.
         try:
@@ -115,4 +121,4 @@ class BeanieIntroRepository:
         return self._store.direct_url(intro.key, expires)
 
 
-__all__ = ["BeanieIntroRepository", "intro_key"]
+__all__ = ["INTRO_META_CACHE", "BeanieIntroRepository", "intro_key"]

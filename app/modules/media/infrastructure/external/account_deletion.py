@@ -6,6 +6,7 @@ from uuid import UUID
 
 from app.core.storage import ObjectStore, get_object_store
 from app.modules.media.infrastructure.persistence.models import PhotoBlobDocument, PhotoDocument
+from app.modules.media.infrastructure.persistence.repositories import invalidate_photo_cache
 
 
 class AccountDataDeleter:
@@ -21,6 +22,9 @@ class AccountDataDeleter:
                 await self._store.delete(photo.storage_key)
         await PhotoDocument.get_motor_collection().delete_many({"tenant_id": tenant_id})
         await PhotoBlobDocument.get_motor_collection().delete_many({"tenant_id": tenant_id})
+        await invalidate_photo_cache(tenant_id)
+        for photo in photos:
+            await invalidate_photo_cache(tenant_id, photo.id)
 
 
 def build_account_data_deleter() -> AccountDataDeleter:

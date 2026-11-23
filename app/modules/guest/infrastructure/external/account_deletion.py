@@ -4,13 +4,16 @@ from __future__ import annotations
 
 from uuid import UUID
 
+from app.core import cache
 from app.modules.guest.infrastructure.persistence.models import GuestDocument, WishDocument
+from app.modules.guest.infrastructure.persistence.repositories import PUBLIC_WISHES_CACHE
 
 
 class AccountDataDeleter:
     async def execute(self, tenant_id: UUID) -> None:
         await GuestDocument.get_motor_collection().delete_many({"tenant_id": tenant_id})
         await WishDocument.get_motor_collection().delete_many({"tenant_id": tenant_id})
+        await cache.delete(PUBLIC_WISHES_CACHE, str(tenant_id))
 
 
 def build_account_data_deleter() -> AccountDataDeleter:

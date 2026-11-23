@@ -91,6 +91,8 @@ class Photo:
     focus_y: float = 50.0
     adjust: PhotoAdjust = field(default_factory=PhotoAdjust)
     created_at: datetime | None = None
+    storage_key: str = ""
+    small_key: str = ""
 
 
 @dataclass(frozen=True, slots=True)

@@ -68,8 +68,12 @@ async def get_invitation(
         message="Bạn mở thiệp quá nhanh. Vui lòng thử lại sau ít phút.",
         code="invitation_rate_limited",
     )
-    # Trang mang tên khách: không cho proxy/CDN dùng chung bản lưu giữa hai người.
-    response.headers["Cache-Control"] = "private, no-store"
+    if g:
+        # Trang mang tên khách: không cho proxy/CDN dùng chung bản lưu giữa hai người.
+        response.headers["Cache-Control"] = "private, no-store"
+    else:
+        # Link chung / link đối tượng không mang mã cá nhân: cho phép cache ngắn ở edge/trình duyệt.
+        response.headers["Cache-Control"] = "public, max-age=30, stale-while-revalidate=120"
     return ok(InvitationOut.of(await use_case.execute(slug, g, link)))
 
 
@@ -127,7 +131,10 @@ async def submit_wish(
     response_model=ResponseEnvelope[list[PublicWishOut]],
     summary="Lời chúc hiện trên web thiệp",
 )
-async def list_wishes(slug: Slug, use_case: ListPublicWishesDep) -> dict[str, Any]:
+async def list_wishes(
+    slug: Slug, response: Response, use_case: ListPublicWishesDep
+) -> dict[str, Any]:
+    response.headers["Cache-Control"] = "public, max-age=15, stale-while-revalidate=60"
     return ok_list([PublicWishOut.model_validate(item) for item in await use_case.execute(slug)])
 
 

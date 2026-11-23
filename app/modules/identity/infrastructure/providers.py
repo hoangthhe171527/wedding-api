@@ -19,6 +19,7 @@ from app.modules.access import (
 from app.modules.identity.application.session_issuer import SessionIssuer
 from app.modules.identity.application.use_cases import (
     ChangeOwnPassword,
+    CreateAdminResetLink,
     DeleteOwnAccount,
     GetCurrentActor,
     ListUsers,
@@ -26,10 +27,14 @@ from app.modules.identity.application.use_cases import (
     LogoutUser,
     RefreshToken,
     RegisterCustomer,
+    RequestPasswordReset,
+    ResetPassword,
     SetUserActive,
 )
+from app.modules.identity.infrastructure.external.smtp_mailer import SmtpPasswordResetMailer
 from app.modules.identity.infrastructure.persistence.repositories import (
     BeanieAuthSessionRepository,
+    BeaniePasswordResetTokenRepository,
     BeanieStudioRepository,
     BeanieUserRepository,
 )
@@ -93,7 +98,28 @@ def provide_delete_own_account() -> DeleteOwnAccount:
             billing_deleter(),
             printing_deleter(),
         ),
+        BeaniePasswordResetTokenRepository(),
     )
+
+
+def provide_request_password_reset() -> RequestPasswordReset:
+    return RequestPasswordReset(
+        BeanieUserRepository(),
+        BeaniePasswordResetTokenRepository(),
+        SmtpPasswordResetMailer(),
+    )
+
+
+def provide_reset_password() -> ResetPassword:
+    return ResetPassword(
+        BeanieUserRepository(),
+        BeanieAuthSessionRepository(),
+        BeaniePasswordResetTokenRepository(),
+    )
+
+
+def provide_create_admin_reset_link() -> CreateAdminResetLink:
+    return CreateAdminResetLink(BeanieUserRepository(), BeaniePasswordResetTokenRepository())
 
 
 def provide_list_users() -> ListUsers:
@@ -111,11 +137,15 @@ LogoutUserDep = Annotated[LogoutUser, Depends(provide_logout_user)]
 GetCurrentActorDep = Annotated[GetCurrentActor, Depends(provide_get_current_actor)]
 ChangeOwnPasswordDep = Annotated[ChangeOwnPassword, Depends(provide_change_own_password)]
 DeleteOwnAccountDep = Annotated[DeleteOwnAccount, Depends(provide_delete_own_account)]
+RequestPasswordResetDep = Annotated[RequestPasswordReset, Depends(provide_request_password_reset)]
+ResetPasswordDep = Annotated[ResetPassword, Depends(provide_reset_password)]
+CreateAdminResetLinkDep = Annotated[CreateAdminResetLink, Depends(provide_create_admin_reset_link)]
 ListUsersDep = Annotated[ListUsers, Depends(provide_list_users)]
 SetUserActiveDep = Annotated[SetUserActive, Depends(provide_set_user_active)]
 
 __all__ = [
     "ChangeOwnPasswordDep",
+    "CreateAdminResetLinkDep",
     "DeleteOwnAccountDep",
     "GetCurrentActorDep",
     "ListUsersDep",
@@ -123,6 +153,8 @@ __all__ = [
     "LogoutUserDep",
     "RefreshTokenDep",
     "RegisterCustomerDep",
+    "RequestPasswordResetDep",
+    "ResetPasswordDep",
     "SetUserActiveDep",
     "build_session_issuer",
 ]

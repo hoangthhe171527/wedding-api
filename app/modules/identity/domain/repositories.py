@@ -8,7 +8,7 @@ from typing import Protocol
 from uuid import UUID
 
 from app.core.pages import Page, PageParams
-from app.modules.identity.domain.entities import AuthSession, Studio, User
+from app.modules.identity.domain.entities import AuthSession, PasswordResetToken, Studio, User
 
 
 class StudioRepository(Protocol):
@@ -129,4 +129,35 @@ class AuthSessionRepository(Protocol):
         ...
 
 
-__all__ = ["AuthSessionRepository", "StudioRepository", "UserRepository"]
+class PasswordResetTokenRepository(Protocol):
+    """Truy cập collection `password_reset_tokens`."""
+
+    async def create(
+        self,
+        *,
+        tenant_id: UUID,
+        user_id: UUID,
+        token_hash: str,
+        expires_at: datetime,
+        created_by_admin_id: UUID | None = None,
+    ) -> PasswordResetToken: ...
+
+    async def invalidate_for_user(self, user_id: UUID, now: datetime) -> int:
+        """Vô hiệu hoá các token chưa dùng trước đó khi cấp token mới."""
+        ...
+
+    async def consume(self, token_hash: str, now: datetime) -> PasswordResetToken | None:
+        """Đánh dấu đã dùng nguyên tử và trả token nếu còn hiệu lực."""
+        ...
+
+    async def delete_for_tenant(self, tenant_id: UUID) -> int:
+        """Xoá token đặt lại mật khẩu của xưởng khi xoá tài khoản."""
+        ...
+
+
+__all__ = [
+    "AuthSessionRepository",
+    "PasswordResetTokenRepository",
+    "StudioRepository",
+    "UserRepository",
+]

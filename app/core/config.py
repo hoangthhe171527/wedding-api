@@ -88,6 +88,15 @@ class Settings(BaseSettings):
     #: Cho khách tự đăng ký tài khoản dùng mẫu. Tắt đi thì chỉ admin cấp được.
     ALLOW_SELF_REGISTRATION: bool = True
 
+    # --- Email đặt lại mật khẩu (tùy chọn — để trống là tắt gửi tự động) ----
+    SMTP_HOST: str = ""
+    SMTP_PORT: Annotated[int, Field(ge=1, le=65535)] = 587
+    SMTP_USER: str = ""
+    SMTP_PASSWORD: str = ""
+    SMTP_FROM: str = ""
+    SMTP_USE_TLS: bool = True
+    PASSWORD_RESET_TTL_MINUTES: Annotated[int, Field(ge=5, le=120)] = 30
+
     # --- Giới hạn tần suất --------------------------------------------------
     #: Số lần thử đăng nhập tối đa từ MỘT địa chỉ IP trong một cửa sổ.
     LOGIN_RATE_LIMIT_IP: Annotated[int, Field(ge=1, le=1000)] = 20
@@ -156,6 +165,8 @@ class Settings(BaseSettings):
     APPLE_IAP_PREMIUM_PRODUCT_ID: str = "vn.sunriseieco.thiephy.plan.premium"
     #: Cho phép kiểm tra OCSP online của chuỗi chứng thư Apple.
     APPLE_IAP_ENABLE_ONLINE_CHECKS: bool = True
+    #: Chỉ bật tạm khi Apple Review kiểm thử bản Production dùng Sandbox; mặc định tắt.
+    APPLE_IAP_ALLOW_SANDBOX: bool = False
 
     # --- Gợi ý câu chữ bằng AI (Claude) ------------------------------------
     #: Để trống là tắt tính năng — nút "Gợi ý bằng AI" ẩn đi, endpoint trả 503.

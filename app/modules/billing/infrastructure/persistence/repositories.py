@@ -9,6 +9,7 @@ from uuid import UUID
 from pymongo import ReturnDocument
 from pymongo.errors import DuplicateKeyError
 
+from app.core import cache
 from app.core.base_model import utc_now
 from app.core.pages import Page, PageParams
 from app.modules.billing.domain.entities import ApplePurchase, Order, PaymentEvent
@@ -27,6 +28,8 @@ from app.modules.billing.infrastructure.persistence.models import (
     OrderDocument,
     PaymentEventDocument,
 )
+
+ENTITLEMENT_CACHE = "entitlement"
 
 
 def _order(doc: OrderDocument) -> Order:
@@ -203,7 +206,10 @@ class BeanieOrderRepository:
             },
             return_document=ReturnDocument.AFTER,
         )
-        return _order_raw(raw)
+        order = _order_raw(raw)
+        if order is not None:
+            await cache.delete(ENTITLEMENT_CACHE, str(order.tenant_id))
+        return order
 
     async def cancel(self, tenant_id: UUID, order_id: UUID) -> Order | None:
         raw = await OrderDocument.get_motor_collection().find_one_and_update(
@@ -216,7 +222,10 @@ class BeanieOrderRepository:
             {"$set": {"status": OrderStatus.CANCELLED.value, "updated_at": utc_now()}},
             return_document=ReturnDocument.AFTER,
         )
-        return _order_raw(raw)
+        order = _order_raw(raw)
+        if order is not None:
+            await cache.delete(ENTITLEMENT_CACHE, str(order.tenant_id))
+        return order
 
     async def expire_due(self, now: datetime, tenant_id: UUID | None = None) -> int:
         criteria: dict[str, Any] = {
@@ -306,6 +315,7 @@ class BeanieApplePurchaseRepository:
 
 
 __all__ = [
+    "ENTITLEMENT_CACHE",
     "BeanieApplePurchaseRepository",
     "BeanieOrderRepository",
     "BeaniePaymentEventRepository",
